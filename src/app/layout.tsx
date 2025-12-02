@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { AntdRegistry } from "@ant-design/nextjs-registry";
-import "./globals.css";
+import { Theme } from "@/ui-kit/Theme";
 
 export const metadata: Metadata = {
   title: "Admin Shell",
@@ -13,9 +12,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <AntdRegistry>{children}</AntdRegistry>
+        <Theme>{children}</Theme>
       </body>
     </html>
   );
