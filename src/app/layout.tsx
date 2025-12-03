@@ -1,10 +1,4 @@
-import type { Metadata } from "next";
-import { ClientOnly } from "./ClientOnly";
-
-export const metadata: Metadata = {
-  title: "Admin Shell",
-  description: "Admin panel powered by Next.js and Ant Design",
-};
+import { Theme } from "@/ui-kit/Theme";
 
 export default function RootLayout({
   children,
@@ -14,7 +8,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <ClientOnly>{children}</ClientOnly>
+        <Theme>{children}</Theme>
       </body>
     </html>
   );

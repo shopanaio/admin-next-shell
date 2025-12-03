@@ -1,37 +1,9 @@
-import React from 'react';
-import type { ComponentType } from 'react';
-import { match, type MatchFunction, type ParamData } from 'path-to-regexp';
-import { notFound } from 'next/navigation';
+import React from "react";
+import type { ComponentType } from "react";
+import { match, type MatchFunction, type ParamData } from "path-to-regexp";
+import { notFound } from "next/navigation";
 
 export type { ParamData };
-
-/**
- * Async component loader.
- */
-export type AsyncComponentLoader<T = unknown> = () => Promise<T> | T;
-
-/**
- * Configuration for registering a page module.
- */
-export interface ModuleConfig<T = unknown> {
-  path: string;
-  component: AsyncComponentLoader<T>;
-}
-
-/**
- * Record held inside the registry.
- */
-export interface RegisteredModuleRecord<T = unknown> extends ModuleConfig<T> {
-  matcher: MatchFunction<ParamData>;
-}
-
-/**
- * Result of a successful module match.
- */
-export interface ModuleMatchResult<T = unknown> {
-  record: RegisteredModuleRecord<T>;
-  params: ParamData;
-}
 
 /**
  * Props contract for module page components.
@@ -43,11 +15,27 @@ export interface ModulePageProps {
 }
 
 /**
- * Common shape of a module export.
+ * Configuration for registering a page module.
  */
-export type ModuleExport<TProps> =
-  | { default: ComponentType<TProps> }
-  | ComponentType<TProps>;
+export interface ModuleConfig {
+  path: string;
+  component: ComponentType<ModulePageProps>;
+}
+
+/**
+ * Record held inside the registry.
+ */
+export interface RegisteredModuleRecord extends ModuleConfig {
+  matcher: MatchFunction<ParamData>;
+}
+
+/**
+ * Result of a successful module match.
+ */
+export interface ModuleMatchResult {
+  record: RegisteredModuleRecord;
+  params: ParamData;
+}
 
 /**
  * Module Registry for dynamic page module resolution.
@@ -55,19 +43,19 @@ export type ModuleExport<TProps> =
 export class ModuleRegistry {
   private readonly records: RegisteredModuleRecord[] = [];
 
-  register<T = unknown>(config: ModuleConfig<T>): void {
+  register(config: ModuleConfig): void {
     const { path, component } = config;
     const matcher = match(path, { decode: decodeURIComponent });
-    const record: RegisteredModuleRecord<T> = { path, component, matcher };
+    const record: RegisteredModuleRecord = { path, component, matcher };
     this.records.push(record);
   }
 
-  matchPath<T = unknown>(pathname: string): ModuleMatchResult<T> | undefined {
+  matchPath(pathname: string): ModuleMatchResult | undefined {
     for (const record of this.records) {
       const result = record.matcher(pathname);
       if (result) {
         return {
-          record: record as RegisteredModuleRecord<T>,
+          record,
           params: result.params,
         };
       }
@@ -88,7 +76,7 @@ export const moduleRegistry = new ModuleRegistry();
 /**
  * Helper to register modules.
  */
-export function registerModule<T = unknown>(config: ModuleConfig<T>): void {
+export function registerModule(config: ModuleConfig): void {
   moduleRegistry.register(config);
 }
 
@@ -101,13 +89,11 @@ interface PageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-function getComponentFromModule(
-  input: ModuleExport<ModulePageProps>
-): React.ComponentType<ModulePageProps> {
-  if (input && typeof input === 'object' && 'default' in input) {
-    return (input as { default: React.ComponentType<ModulePageProps> }).default;
-  }
-  return input as React.ComponentType<ModulePageProps>;
+function renderComponent(
+  Component: ComponentType<ModulePageProps>,
+  props: ModulePageProps
+): React.ReactElement {
+  return <Component {...props} />;
 }
 
 export interface CreatePageOptions {
@@ -137,9 +123,9 @@ export function createPage(options: CreatePageOptions) {
   async function Page(props: PageProps) {
     const params = await props.params;
     const segments = params.slug ?? [];
-    const pathname = '/' + segments.join('/');
+    const pathname = "/" + segments.join("/");
 
-    const matchResult = moduleRegistry.matchPath<ModuleExport<ModulePageProps>>(pathname);
+    const matchResult = moduleRegistry.matchPath(pathname);
 
     if (!matchResult) {
       notFound();
@@ -148,9 +134,9 @@ export function createPage(options: CreatePageOptions) {
     const rawSearchParams = await props.searchParams;
     const searchParams = rawSearchParams ? { ...rawSearchParams } : {};
 
-    const modulePayload = await matchResult.record.component();
+    const Component = matchResult.record.component;
 
-    return React.createElement(getComponentFromModule(modulePayload), {
+    return renderComponent(Component, {
       params: { slug: segments },
       searchParams,
       pathParams: matchResult.params ? { ...matchResult.params } : {},

@@ -1,11 +1,7 @@
-import { registerModule } from '@/registry';
+import { registerModule } from "@/registry";
+import dynamic from "next/dynamic";
 
 registerModule({
-  path: '/products',
-  component: async () => import('@/modules/products/page/page'),
-});
-
-registerModule({
-  path: '/products/:id',
-  component: async () => import('@/modules/products/page/detail'),
+  path: "/products",
+  component: dynamic(() => import("@/modules/products/page/page")),
 });
