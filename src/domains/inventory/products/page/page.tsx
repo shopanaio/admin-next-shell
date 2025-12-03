@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { Tag, Image, Typography, Flex, Select } from "antd";
+import { useState, useMemo } from "react";
+import { Tag, Image, Typography, Flex } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { TableLayout } from "@/layouts/table/components/TableLayout";
-import { TableNavigation } from "@/layouts/table/components/Navigation/Navigation";
-import { Search } from "@/layouts/table/components/Navigation/Search";
-import { Actions } from "@/layouts/table/components/Navigation/Actions";
+import { UiFilter } from "@/entity/UiFilter";
+import { useUiFilters } from "@/components/filters/UiFilterWidget";
+import { useDrawersStore, DrawerTypes } from "@/layouts/drawers";
 
 interface IProduct {
   id: string;
@@ -189,54 +189,125 @@ const columns: ColumnsType<IProduct> = [
   },
 ];
 
-const statusOptions = [
-  { label: "All", value: "all" },
-  { label: "Active", value: "active" },
-  { label: "Draft", value: "draft" },
-  { label: "Archived", value: "archived" },
-];
-
-const categoryOptions = [
-  { label: "All Categories", value: "all" },
-  { label: "Electronics", value: "Electronics" },
-  { label: "Computers", value: "Computers" },
-  { label: "Audio", value: "Audio" },
-  { label: "Gaming", value: "Gaming" },
-  { label: "Accessories", value: "Accessories" },
-];
-
-const searchOptions = [
-  { label: "Name", value: "name" },
-  { label: "SKU", value: "sku" },
+const filterOptions: UiFilter.IUiFilter[] = [
+  {
+    key: "status",
+    label: "Status",
+    description: "Filter by product status",
+    type: UiFilter.UiFilterType.IsConstant,
+    operators: [UiFilter.UiFilterOperator.In],
+    payloadKey: "status",
+    options: [
+      { label: "Active", value: "active" },
+      { label: "Draft", value: "draft" },
+      { label: "Archived", value: "archived" },
+    ],
+  },
+  {
+    key: "category",
+    label: "Category",
+    description: "Filter by category",
+    type: UiFilter.UiFilterType.IsConstant,
+    operators: [UiFilter.UiFilterOperator.In],
+    payloadKey: "category",
+    options: [
+      { label: "Electronics", value: "Electronics" },
+      { label: "Computers", value: "Computers" },
+      { label: "Audio", value: "Audio" },
+      { label: "Gaming", value: "Gaming" },
+      { label: "Accessories", value: "Accessories" },
+    ],
+  },
+  {
+    key: "price",
+    label: "Price",
+    description: "Filter by price",
+    type: UiFilter.UiFilterType.Number,
+    operators: UiFilter.uiNumberFilterOperators,
+    payloadKey: "price",
+  },
+  {
+    key: "stock",
+    label: "Stock",
+    description: "Filter by stock quantity",
+    type: UiFilter.UiFilterType.Number,
+    operators: UiFilter.uiNumberFilterOperators,
+    payloadKey: "stock",
+  },
+  {
+    key: "name",
+    label: "Name",
+    description: "Filter by product name",
+    type: UiFilter.UiFilterType.String,
+    operators: UiFilter.uiStringFilterOperators,
+    payloadKey: "name",
+  },
 ];
 
 export default function ProductsPage() {
   const [selectedRows, setSelectedRows] = useState<IProduct[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [searchProperty, setSearchProperty] = useState("name");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const filtersProps = useUiFilters({ filters: filterOptions });
+  const addDrawer = useDrawersStore((state) => state.addDrawer);
 
-  const filteredProducts = mockProducts.filter((product) => {
-    const matchesSearch = searchValue
-      ? product[searchProperty as keyof IProduct]
-          ?.toString()
-          .toLowerCase()
-          .includes(searchValue.toLowerCase())
-      : true;
-    const matchesStatus =
-      statusFilter === "all" ? true : product.status === statusFilter;
-    const matchesCategory =
-      categoryFilter === "all" ? true : product.category === categoryFilter;
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
+  const filteredProducts = useMemo(() => {
+    let result = mockProducts;
+
+    // Apply search
+    if (searchValue) {
+      const search = searchValue.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(search) ||
+          p.sku.toLowerCase().includes(search)
+      );
+    }
+
+    // Apply filters
+    filtersProps.value.forEach((filter) => {
+      const key = filter.payloadKey as keyof IProduct;
+      const { operator, value } = filter;
+
+      if (!value || (Array.isArray(value) && value.length === 0)) return;
+
+      result = result.filter((product) => {
+        const productValue = product[key];
+
+        switch (operator) {
+          case UiFilter.UiFilterOperator.In:
+            return value.includes(productValue);
+          case UiFilter.UiFilterOperator.Eq:
+            return productValue === value[0];
+          case UiFilter.UiFilterOperator.Gt:
+            return (productValue as number) > value[0];
+          case UiFilter.UiFilterOperator.Gte:
+            return (productValue as number) >= value[0];
+          case UiFilter.UiFilterOperator.Lt:
+            return (productValue as number) < value[0];
+          case UiFilter.UiFilterOperator.Lte:
+            return (productValue as number) <= value[0];
+          case UiFilter.UiFilterOperator.ILike:
+            return String(productValue)
+              .toLowerCase()
+              .includes(String(value[0]).toLowerCase());
+          default:
+            return true;
+        }
+      });
+    });
+
+    return result;
+  }, [searchValue, filtersProps.value]);
 
   const handleCreate = () => {
     console.log("Create new product");
   };
 
   const handleRowClick = (record: IProduct) => {
-    console.log("Row clicked:", record);
+    addDrawer({
+      type: DrawerTypes.PRODUCT,
+      entityId: record.id,
+    });
   };
 
   const handleDelete = (rows: IProduct[]) => {
@@ -247,42 +318,8 @@ export default function ProductsPage() {
     console.log("Archive products:", rows);
   };
 
-  const navigation = (
-    <TableNavigation>
-      <Search
-        options={searchOptions}
-        searchValue={searchValue}
-        property={searchProperty}
-        onChangeSearchValue={setSearchValue}
-        onChangeProperty={setSearchProperty}
-        placeholder="Search products..."
-      />
-      <Select
-        value={statusFilter}
-        onChange={setStatusFilter}
-        options={statusOptions}
-        style={{ width: 120 }}
-      />
-      <Select
-        value={categoryFilter}
-        onChange={setCategoryFilter}
-        options={categoryOptions}
-        style={{ width: 160 }}
-      />
-      <div style={{ flex: 1 }} />
-      {selectedRows.length > 0 && (
-        <Actions
-          selectedRows={selectedRows}
-          clearSelectedRows={() => setSelectedRows([])}
-          onDelete={handleDelete}
-          onArchive={handleArchive}
-        />
-      )}
-    </TableNavigation>
-  );
-
   return (
-    <TableLayout
+    <TableLayout<IProduct>
       name="products"
       headerProps={{
         title: "Products",
@@ -290,7 +327,22 @@ export default function ProductsPage() {
         create: handleCreate,
         createLabel: "Add Product",
       }}
-      navigation={navigation}
+      navigationProps={{
+        filtersProps,
+        searchProps: {
+          searchValue,
+          onChangeSearchValue: setSearchValue,
+        },
+        selectedRowsProps: {
+          selectedRows,
+          onChangeSelectedRows: setSelectedRows,
+          clearSelectedRows: () => setSelectedRows([]),
+        },
+        actionsProps: {
+          onDelete: handleDelete,
+          onArchive: handleArchive,
+        },
+      }}
       tableProps={{
         name: "products",
         data: filteredProducts,

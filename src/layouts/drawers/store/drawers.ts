@@ -1,18 +1,15 @@
 import { create } from 'zustand';
-import { IEntityDrawerItem } from '@src/layouts/drawers/types';
+import { IEntityDrawerItem } from '../types';
 
 interface IDrawersState {
   drawers: IEntityDrawerItem[];
-}
-
-interface IDrawersActions {
   addDrawer: (payload: Omit<IEntityDrawerItem, 'uuid'>) => void;
   removeDrawer: (uuid: string) => void;
-  setDirty: (payload: { uuid: string; isDirty: boolean }) => void;
+  setDirty: (uuid: string, isDirty: boolean) => void;
   updateDrawer: (payload: Partial<IEntityDrawerItem> & { uuid: string }) => void;
 }
 
-export const useDrawersStore = create<IDrawersState & IDrawersActions>((set) => ({
+export const useDrawersStore = create<IDrawersState>((set) => ({
   drawers: [],
 
   addDrawer: (payload) =>
@@ -29,36 +26,21 @@ export const useDrawersStore = create<IDrawersState & IDrawersActions>((set) => 
   removeDrawer: (uuid) =>
     set((state) => {
       const itemIdx = state.drawers.findIndex((it) => it.uuid === uuid);
-
-      if (itemIdx === -1) {
-        return state;
-      }
-
-      return {
-        /**
-         * Array is sliced since all the next drawers should be removed as well
-         */
-        drawers: state.drawers.slice(0, itemIdx),
-      };
+      if (itemIdx === -1) return state;
+      return { drawers: state.drawers.slice(0, itemIdx) };
     }),
 
-  setDirty: (payload) =>
+  setDirty: (uuid, isDirty) =>
     set((state) => ({
-      drawers: state.drawers.map((it) => {
-        if (payload.uuid === it.uuid) {
-          return { ...it, isDirty: payload.isDirty };
-        }
-        return it;
-      }),
+      drawers: state.drawers.map((it) =>
+        it.uuid === uuid ? { ...it, isDirty } : it
+      ),
     })),
 
   updateDrawer: (payload) =>
     set((state) => ({
-      drawers: state.drawers.map((it) => {
-        if (payload.uuid === it.uuid) {
-          return { ...it, ...payload };
-        }
-        return it;
-      }),
+      drawers: state.drawers.map((it) =>
+        it.uuid === payload.uuid ? { ...it, ...payload } : it
+      ),
     })),
 }));

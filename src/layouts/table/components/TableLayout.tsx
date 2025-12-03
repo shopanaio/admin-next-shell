@@ -1,6 +1,5 @@
 import { createStyles } from 'antd-style';
 import { Flex } from 'antd';
-import { ReactNode } from 'react';
 
 import { LayoutSkeleton } from '@/layouts/table/components/Skeleton';
 import {
@@ -19,6 +18,10 @@ import {
   TableBottomBorder,
   TableTopBorder,
 } from '@/layouts/table/components/TableBorders';
+import {
+  ITableNavigationProps,
+  TableNavigation,
+} from '@/layouts/table/components/Navigation/Navigation';
 
 const useStyles = createStyles({
   wrapper: {
@@ -62,24 +65,24 @@ const useStyles = createStyles({
   },
 });
 
-interface ITableLayoutProps<TData = any> {
+interface ITableLayoutProps<TData = unknown> {
   name?: string;
   headerProps: ITableLayoutHeaderProps;
-  navigation?: ReactNode;
+  navigationProps?: ITableNavigationProps<TData>;
   loading?: boolean;
   tableProps: IDataTableProps<TData>;
   paginationProps?: ITablePaginationProps;
   ready?: boolean;
 }
 
-export const TableLayout = ({
+export const TableLayout = <TData extends { id?: string | number }>({
   name,
   headerProps,
-  navigation,
+  navigationProps,
   tableProps,
   paginationProps,
   ready = true,
-}: ITableLayoutProps) => {
+}: ITableLayoutProps<TData>) => {
   const { styles } = useStyles();
 
   if (!ready) {
@@ -90,7 +93,7 @@ export const TableLayout = ({
     <div className={styles.wrapper} data-testid={`${name || 'data'}-layout`}>
       <TableLayoutHeader {...headerProps} />
       <div className={styles.navigationWrapper}>
-        {navigation}
+        {navigationProps && <TableNavigation {...navigationProps} />}
         <div className={styles.navigationSpacer} />
       </div>
       <Flex vertical style={{ width: '100%' }}>

@@ -1,6 +1,14 @@
-import { EntityDrawersContext } from '@/layouts/drawers/context/context';
-import { IEntityDrawerItem } from '@/layouts/drawers/types';
 import { ReactNode } from 'react';
+import { EntityDrawersContext } from '../context/context';
+import { IEntityDrawerItem } from '../types';
+
+interface IProviderProps {
+  children: ReactNode;
+  drawerItem: IEntityDrawerItem;
+  onClose: () => void;
+  onForceClose: () => void;
+  onUpdate: (nextItem: Partial<IEntityDrawerItem>) => void;
+}
 
 export const EntityDrawersProvider = ({
   children,
@@ -8,13 +16,7 @@ export const EntityDrawersProvider = ({
   onClose,
   onForceClose,
   onUpdate,
-}: {
-  children: ReactNode;
-  drawerItem: IEntityDrawerItem;
-  onClose: () => void;
-  onForceClose: () => void;
-  onUpdate: (nextItem: Partial<IEntityDrawerItem>) => void;
-}) => {
+}: IProviderProps) => {
   return (
     <EntityDrawersContext.Provider
       value={{
