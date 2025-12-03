@@ -16,7 +16,7 @@ const useStyles = createStyles(({ css }, { isCollapsed }: { isCollapsed: boolean
       color 0.2s ease,
       width 0.2s ease;
     flex-wrap: nowrap;
-    width: ${isCollapsed ? 'calc(100% - var(--x2))' : 'calc(100% - var(--x8))'};
+    width: ${isCollapsed ? 'calc(100% - var(--x2))' : 'calc(100% - var(--x4))'};
 
     &:hover {
       cursor: pointer;

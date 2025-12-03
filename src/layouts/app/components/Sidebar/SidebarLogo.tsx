@@ -5,7 +5,7 @@ import { createStyles } from 'antd-style';
 const useStyles = createStyles(({ css }, { isCollapsed }: { isCollapsed: boolean }) => ({
   logo: css`
     margin-top: 22px;
-    transform: translateX(${isCollapsed ? 'var(--x5)' : '14px'});
+    transform: translateX(${isCollapsed ? 'var(--x5)' : '10px'});
     transition: transform 0.2s ease;
 
     & > * {
