@@ -13,9 +13,9 @@ export interface ModulePageProps {
 }
 
 /**
- * Sidebar item configuration for modules.
+ * Sidebar configuration.
  */
-export interface ModuleSidebarItem {
+export interface SidebarConfig {
   label: string;
   order?: number;
 }
@@ -26,8 +26,10 @@ export interface ModuleSidebarItem {
 export interface SidebarItem {
   key: string;
   label: string;
+  path?: string;
   icon?: ReactNode;
   order?: number;
+  type?: "group";
   children?: SidebarItem[];
 }
 
@@ -42,20 +44,34 @@ export interface DomainConfig {
 }
 
 /**
- * Configuration for registering a page module.
+ * Configuration for a module item (page).
+ */
+export interface ModuleItemConfig {
+  key: string;
+  path: string;
+  component: ComponentType<ModulePageProps>;
+  sidebar?: SidebarConfig;
+}
+
+/**
+ * Configuration for registering a module.
  */
 export interface ModuleConfig {
   key: string;
   domain: string;
-  path: string;
-  component: ComponentType<ModulePageProps>;
-  sidebar?: ModuleSidebarItem;
+  sidebar: SidebarConfig;
+  items: ModuleItemConfig[];
 }
 
 /**
- * Record held inside the registry.
+ * Record held inside the registry for path matching.
  */
-export interface RegisteredModuleRecord extends ModuleConfig {
+export interface RegisteredPageRecord {
+  moduleKey: string;
+  itemKey: string;
+  domain: string;
+  path: string;
+  component: ComponentType<ModulePageProps>;
   matcher: MatchFunction<ParamData>;
 }
 
@@ -63,7 +79,7 @@ export interface RegisteredModuleRecord extends ModuleConfig {
  * Result of a successful module match.
  */
 export interface ModuleMatchResult {
-  record: RegisteredModuleRecord;
+  record: RegisteredPageRecord;
   params: ParamData;
 }
 
@@ -72,21 +88,36 @@ export interface ModuleMatchResult {
  */
 export class ModuleRegistry {
   private readonly domains: Map<string, DomainConfig> = new Map();
-  private readonly records: RegisteredModuleRecord[] = [];
+  private readonly modules: Map<string, ModuleConfig> = new Map();
+  private readonly pages: RegisteredPageRecord[] = [];
 
   registerDomain(config: DomainConfig): void {
     this.domains.set(config.key, config);
   }
 
   register(config: ModuleConfig): void {
-    const { path, component, sidebar, key, domain } = config;
-    const matcher = match(path, { decode: decodeURIComponent });
-    const record: RegisteredModuleRecord = { key, domain, path, component, sidebar, matcher };
-    this.records.push(record);
+    this.modules.set(config.key, config);
+
+    if (!config.items || !Array.isArray(config.items)) {
+      console.warn(`Module "${config.key}" has no items`);
+      return;
+    }
+
+    for (const item of config.items) {
+      const matcher = match(item.path, { decode: decodeURIComponent });
+      this.pages.push({
+        moduleKey: config.key,
+        itemKey: item.key,
+        domain: config.domain,
+        path: item.path,
+        component: item.component,
+        matcher,
+      });
+    }
   }
 
   matchPath(pathname: string): ModuleMatchResult | undefined {
-    for (const record of this.records) {
+    for (const record of this.pages) {
       const result = record.matcher(pathname);
       if (result) {
         return {
@@ -99,19 +130,18 @@ export class ModuleRegistry {
   }
 
   list(): string[] {
-    return this.records.map((r) => r.path);
+    return this.pages.map((r) => r.path);
   }
 
   getSidebarItems(): SidebarItem[] {
     const result: SidebarItem[] = [];
 
     // Group modules by domain
-    const modulesByDomain = new Map<string, RegisteredModuleRecord[]>();
-    for (const record of this.records) {
-      if (!record.sidebar) continue;
-      const existing = modulesByDomain.get(record.domain) ?? [];
-      existing.push(record);
-      modulesByDomain.set(record.domain, existing);
+    const modulesByDomain = new Map<string, ModuleConfig[]>();
+    for (const mod of this.modules.values()) {
+      const existing = modulesByDomain.get(mod.domain) ?? [];
+      existing.push(mod);
+      modulesByDomain.set(mod.domain, existing);
     }
 
     // Build sidebar items from domains
@@ -121,17 +151,29 @@ export class ModuleRegistry {
     for (const domain of sortedDomains) {
       const modules = modulesByDomain.get(domain.key) ?? [];
       const children = modules
-        .filter((m) => m.sidebar)
-        .sort((a, b) => (a.sidebar!.order ?? 0) - (b.sidebar!.order ?? 0))
-        .map((m) => ({
-          key: m.key,
-          label: m.sidebar!.label,
-        }));
+        .sort((a, b) => (a.sidebar.order ?? 0) - (b.sidebar.order ?? 0))
+        .map((mod): SidebarItem => {
+          const moduleChildren = mod.items
+            .filter((item) => item.sidebar)
+            .sort((a, b) => (a.sidebar!.order ?? 0) - (b.sidebar!.order ?? 0))
+            .map((item): SidebarItem => ({
+              key: item.key,
+              label: item.sidebar!.label,
+              path: item.path,
+            }));
+
+          return {
+            key: mod.key,
+            label: mod.sidebar.label,
+            children: moduleChildren.length > 0 ? moduleChildren : undefined,
+          };
+        });
 
       result.push({
         key: domain.key,
         label: domain.label,
         icon: domain.icon,
+        type: "group",
         children: children.length > 0 ? children : undefined,
       });
     }
