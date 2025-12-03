@@ -13,7 +13,6 @@ export const ShopIcon = ({
 }) => (
   <svg
     className={className}
-    enable-background="new 0 0 512 512"
     viewBox="0 0 512 512"
     id="shop"
     width={size}

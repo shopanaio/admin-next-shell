@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Theme } from "@/ui-kit/Theme";
+import { ClientOnly } from "./ClientOnly";
 
 export const metadata: Metadata = {
   title: "Admin Shell",
@@ -14,7 +14,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <Theme>{children}</Theme>
+        <ClientOnly>{children}</ClientOnly>
       </body>
     </html>
   );
