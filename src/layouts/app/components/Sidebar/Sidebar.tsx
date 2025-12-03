@@ -1,4 +1,4 @@
-import { useState, useMemo, createElement } from "react";
+import { useState, useMemo } from "react";
 import { ConfigProvider, Layout, Menu, MenuProps, Typography } from "antd";
 import { StoreMenu } from "@/layouts/app/components/StoreMenu/StoreMenu";
 import { SidebarLogo } from "@/layouts/app/components/Sidebar/SidebarLogo";
@@ -17,9 +17,7 @@ function buildMenuItems(
     const isFinal = isSubitem && index === parentChildrenCount - 1;
     const icon = isSubitem
       ? <SubitemIcon isFinal={isFinal} />
-      : item.icon
-        ? createElement(item.icon)
-        : undefined;
+      : item.icon;
 
     if (item.type === "group") {
       return {

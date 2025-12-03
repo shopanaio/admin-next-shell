@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { match, type MatchFunction, type ParamData } from "path-to-regexp";
 
 export type { ParamData };
@@ -18,7 +18,7 @@ export interface ModulePageProps {
 export interface SidebarItem {
   key: string;
   label: string;
-  icon?: ComponentType;
+  icon?: ReactNode;
   order?: number;
   type?: "group";
   children?: SidebarItem[];

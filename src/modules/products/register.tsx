@@ -8,7 +8,7 @@ registerModule({
   sidebar: {
     key: "products",
     label: "Products",
-    icon: ShoppingOutlined,
+    icon: <ShoppingOutlined />,
     order: 2,
   },
 });
