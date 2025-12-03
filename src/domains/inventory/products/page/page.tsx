@@ -10,6 +10,8 @@ import {
   AllCommunityModule,
   RowSelectionOptions,
   SelectionChangedEvent,
+  PaginationModule,
+  RowDragModule,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
@@ -26,7 +28,7 @@ import {
   type IFilterValue,
 } from "@/layouts/filters";
 
-ModuleRegistry.registerModules([AllCommunityModule]);
+ModuleRegistry.registerModules([AllCommunityModule, PaginationModule, RowDragModule]);
 
 interface IProduct {
   id: string;
@@ -254,6 +256,7 @@ export default function ProductsPage() {
         field: "name",
         cellRenderer: ProductCellRenderer,
         flex: 1,
+        rowDrag: true,
       },
     ],
     []
@@ -262,6 +265,7 @@ export default function ProductsPage() {
   const defaultColDef = useMemo<ColDef>(
     () => ({
       resizable: true,
+      sortable: true,
     }),
     []
   );
@@ -330,7 +334,7 @@ export default function ProductsPage() {
         }
       />
 
-      <div style={{ height: "100%" }}>
+      <div style={{ height: "100%", paddingBottom: "var(--x4)" }}>
         <AgGridReact<IProduct>
           ref={gridRef}
           rowData={filteredProducts}
@@ -339,6 +343,10 @@ export default function ProductsPage() {
           rowSelection={rowSelection}
           onSelectionChanged={onSelectionChanged}
           getRowId={(params) => params.data.id}
+          pagination={true}
+          paginationPageSize={10}
+          rowDragManaged={true}
+          suppressMoveWhenRowDragging={false}
         />
       </div>
     </DataLayout>
