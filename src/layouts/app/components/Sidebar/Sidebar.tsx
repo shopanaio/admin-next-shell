@@ -1,14 +1,47 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ConfigProvider, Layout, Menu, MenuProps, Typography } from "antd";
 import { StoreMenu } from "@/layouts/app/components/StoreMenu/StoreMenu";
 import { SidebarLogo } from "@/layouts/app/components/Sidebar/SidebarLogo";
 import { createStyles } from "antd-style";
 import { useSidebarItems, type SidebarItem } from "@/registry";
 import { SubitemIcon } from "@/ui-kit/Arrows/Arrows";
+import { usePathname } from "next/navigation";
+import { match } from "path-to-regexp";
 
 type AntMenuItem = NonNullable<MenuProps["items"]>[number];
+
+interface MatchedItem {
+  key: string;
+  parentKey?: string;
+}
+
+function findMatchingItem(
+  items: SidebarItem[],
+  pathname: string,
+  parentKey?: string
+): MatchedItem | null {
+  for (const item of items) {
+    if (item.path) {
+      const matcher = match(item.path, { decode: decodeURIComponent });
+      if (matcher(pathname)) {
+        return { key: item.key, parentKey };
+      }
+    }
+    if (item.children) {
+      const found = findMatchingItem(
+        item.children,
+        pathname,
+        item.type === "group" ? parentKey : item.key
+      );
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
+}
 
 function buildMenuItems(
   items: SidebarItem[],
@@ -91,10 +124,11 @@ const useStyles = createStyles(
 );
 
 export const Sidebar = () => {
+  const pathname = usePathname();
   const sidebarItems = useSidebarItems();
   const menuItems = useMemo(() => buildMenuItems(sidebarItems), [sidebarItems]);
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedKeys] = useState<string[]>([]);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [openKeys, setOpenKeys] = useState<string[]>([]);
   const { styles } = useStyles({ collapsed });
 
@@ -104,6 +138,20 @@ export const Sidebar = () => {
   };
 
   const onCollapse = (value: boolean) => setCollapsed(value);
+
+  useEffect(() => {
+    const matched = findMatchingItem(sidebarItems, pathname);
+    if (!matched) {
+      return;
+    }
+    setSelectedKeys([matched.key]);
+    setTimeout(() => {
+      if (collapsed || !matched.parentKey) {
+        return;
+      }
+      setOpenKeys([matched.parentKey]);
+    }, 100);
+  }, [pathname, sidebarItems, collapsed]);
 
   return (
     <>
