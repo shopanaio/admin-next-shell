@@ -1,6 +1,5 @@
 "use client";
 
-import { Button, Typography, Space, Layout } from "antd";
 import { AppLayout } from "@/layouts/app/components/Layout/Layout";
 import {
   HomeOutlined,
@@ -11,8 +10,6 @@ import {
 } from "@ant-design/icons";
 import { SubitemIcon } from "@/ui-kit/Arrows";
 import type { MenuProps } from "antd";
-
-const { Title, Paragraph } = Typography;
 
 const menuItems: MenuProps["items"] = [
   {
@@ -26,7 +23,11 @@ const menuItems: MenuProps["items"] = [
     label: "Products",
     children: [
       { key: "products-list", icon: <SubitemIcon />, label: "All Products" },
-      { key: "products-categories", icon: <SubitemIcon isFinal />, label: "Categories" },
+      {
+        key: "products-categories",
+        icon: <SubitemIcon isFinal />,
+        label: "Categories",
+      },
     ],
   },
   {
@@ -50,18 +51,6 @@ const menuItems: MenuProps["items"] = [
   },
 ];
 
-export default function Home() {
-  return (
-    <AppLayout menuItems={menuItems}>
-      <Layout.Content style={{ padding: 24, background: "var(--bg-gradient)" }}>
-        <Space size="large" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-          <Title level={2}>Dashboard</Title>
-          <Paragraph>
-            Welcome to Admin Shell - Next.js + Ant Design + TypeScript
-          </Paragraph>
-          <Button type="primary">Get Started</Button>
-        </Space>
-      </Layout.Content>
-    </AppLayout>
-  );
+export default function Home({ children }: { children: React.ReactNode }) {
+  return <AppLayout menuItems={menuItems}>{children}</AppLayout>;
 }
