@@ -4,12 +4,12 @@ A powerful, type-safe drawer management system for React/Next.js applications. T
 
 ## Features
 
-- **Registry Pattern**: Register drawers from any domain without modifying the core module
+- **Registry Pattern**: Register drawers from any domain
 - **Type-Safe**: Full TypeScript support with module augmentation for payload types
 - **Nested Drawers**: Support for stacked/nested drawers with proper lifecycle management
 - **Dirty State Handling**: Built-in confirmation dialogs for unsaved changes
 - **Lazy Loading**: Support for `next/dynamic` for code splitting
-- **Flexible API**: Multiple ways to open drawers (hooks, actions, factory)
+- **SSR Compatible**: Client-side registration that works with Next.js App Router
 
 ## Architecture
 
@@ -23,36 +23,95 @@ layouts/drawers/
 │   ├── useDrawer.ts         # Hook to open drawers
 │   └── useDrawerContext.ts  # Hook to access drawer context
 ├── components/
-│   ├── Drawers.tsx          # Root component (place once in layout)
-│   ├── Drawer.tsx           # Individual drawer wrapper
-│   └── Provider.tsx         # Context provider
+│   ├── Drawers.tsx              # Root component (place once in layout)
+│   ├── Drawer.tsx               # Individual drawer wrapper
+│   ├── DrawersRegistration.tsx  # Client-side registration component
+│   └── Provider.tsx             # Context provider
 ├── context/
 │   └── context.tsx          # React context definitions
 ├── types.ts                 # Type definitions
 └── index.ts                 # Public exports
+
+domains/
+└── drawers.tsx              # Centralized drawer definitions
 ```
 
 ## Quick Start
 
-### 1. Add Drawers component to your layout
+### 1. Configure createLayout with getDrawers
 
 ```tsx
-// app/layout.tsx
-import { Drawers } from '@/layouts/drawers';
+// app/[[...slug]]/layout.tsx
+import { createLayout } from "@/registry";
+import { AppLayout } from "@/layouts/app/components/Layout/Layout";
+import { getDrawerDefinitions } from "@/domains/drawers";
 
-export default function RootLayout({ children }) {
+const { Layout: ModuleLayout } = createLayout({
+  modulesContext: require.context("../../domains", true, /(register|domain)\.tsx?$/),
+  getDrawers: getDrawerDefinitions,  // ← Drawer registration
+});
+
+export default function Layout({ children }) {
   return (
-    <html>
-      <body>
-        {children}
-        <Drawers />
-      </body>
-    </html>
+    <ModuleLayout>
+      <AppLayout>{children}</AppLayout>
+    </ModuleLayout>
   );
 }
 ```
 
-### 2. Create a drawer in your domain
+### 2. Add `<Drawers />` to your app layout
+
+```tsx
+// layouts/app/components/Layout/Layout.tsx
+'use client';
+
+import { Drawers } from '@/layouts/drawers';
+
+export const AppLayout = ({ children }) => {
+  return (
+    <Layout>
+      {children}
+      <Drawers />
+    </Layout>
+  );
+};
+```
+
+### 3. Create drawer definitions file
+
+```tsx
+// domains/drawers.tsx
+'use client';
+
+import dynamic from 'next/dynamic';
+import type { IDrawerDefinition } from '@/layouts/drawers/types';
+
+export function getDrawerDefinitions(): IDrawerDefinition[] {
+  return [
+    {
+      type: 'product',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/drawers/ProductDrawer').then(
+          (m) => m.ProductDrawer
+        )
+      ),
+      width: 'calc(100vw - 100px)',
+      confirmOnDirtyClose: true,
+    },
+    {
+      type: 'category',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/drawers/CategoryDrawer').then(
+          (m) => m.CategoryDrawer
+        )
+      ),
+    },
+  ];
+}
+```
+
+### 4. Create a drawer component in your domain
 
 ```tsx
 // domains/products/drawers/ProductDrawer.tsx
@@ -73,7 +132,7 @@ export const ProductDrawer = () => {
 };
 ```
 
-### 3. Define payload types with module augmentation
+### 5. Define payload types with module augmentation
 
 ```tsx
 // domains/products/drawers/types.ts
@@ -92,39 +151,12 @@ declare module '@/layouts/drawers' {
 }
 ```
 
-### 4. Register the drawer
-
-```tsx
-// domains/products/drawers/index.ts
-import dynamic from 'next/dynamic';
-import { registerDrawer } from '@/layouts/drawers';
-
-export function registerProductDrawers() {
-  registerDrawer({
-    type: 'product',
-    component: dynamic(() =>
-      import('./ProductDrawer').then((m) => m.ProductDrawer)
-    ),
-    width: 800,
-    confirmOnDirtyClose: true,
-  });
-}
-```
-
-### 5. Register during app initialization
-
-```tsx
-// domains/products/register.tsx
-import { registerProductDrawers } from './drawers';
-
-// Call during module registration
-registerProductDrawers();
-```
-
 ### 6. Use the drawer
 
 ```tsx
-// Any component
+// Any client component
+'use client';
+
 import { useDrawer } from '@/layouts/drawers';
 import '../drawers/types'; // Import for type augmentation
 
@@ -142,35 +174,20 @@ function ProductList() {
 
 ## API Reference
 
-### Registry
+### Components
 
-#### `registerDrawer(definition)`
+#### `<Drawers />`
 
-Register a drawer definition.
+Root component that renders all open drawers. Place once in your app layout.
 
-```tsx
-registerDrawer({
-  type: 'product',                    // Unique drawer type identifier
-  component: MyDrawerComponent,        // React component or dynamic import
-  width: 800,                         // Optional: drawer width (number or string)
-  confirmOnDirtyClose: true,          // Optional: show confirmation when dirty
-  closeConfirmMessage: 'Are you sure?', // Optional: custom confirmation message
-});
-```
+#### `<DrawersRegistration getDrawers={fn} />`
 
-#### `registerDrawers(definitions[])`
-
-Register multiple drawers at once.
-
-#### `drawerRegistry`
-
-Direct access to the registry instance for advanced use cases.
+Client-side registration component. Must be placed in a client component layout.
 
 ```tsx
-drawerRegistry.has('product');     // Check if registered
-drawerRegistry.get('product');     // Get definition
-drawerRegistry.getTypes();         // Get all registered types
-drawerRegistry.unregister('product'); // Remove registration
+<DrawersRegistration getDrawers={() => [
+  { type: 'product', component: ProductDrawer },
+]} />
 ```
 
 ### Hooks
@@ -213,39 +230,16 @@ closeTop();    // Close topmost drawer
 closeAll();    // Close all drawers
 ```
 
-#### `createDrawerHook<T>(type)`
-
-Factory to create a pre-typed hook for a specific drawer.
-
-**Important**: This can only be used in client components (`'use client'`), not in registration files that run on the server.
+### Drawer Definition
 
 ```tsx
-// In a client component file
-'use client';
-
-import { createDrawerHook } from '@/layouts/drawers';
-import type { ProductDrawerPayload } from './types';
-
-// Create and use in the same client file
-const useProductDrawer = createDrawerHook<ProductDrawerPayload>('product');
-
-function MyComponent() {
-  const openProduct = useProductDrawer();
-  openProduct({ entityId: '123' });
+interface IDrawerDefinition {
+  type: string;                    // Unique drawer type identifier
+  component: ComponentType;         // React component or dynamic import
+  width?: number | string;         // Drawer width (default: 'calc(100vw - 100px)')
+  confirmOnDirtyClose?: boolean;   // Show confirmation when dirty (default: true)
+  closeConfirmMessage?: string;    // Custom confirmation message
 }
-```
-
-For most cases, prefer using `useDrawer('type')` directly with module augmentation for type safety.
-
-### Store
-
-#### `useDrawersStore`
-
-Zustand store for direct state access (advanced).
-
-```tsx
-const drawers = useDrawersStore((state) => state.drawers);
-const { openDrawer, closeDrawer, setDirty } = useDrawersStore();
 ```
 
 ### Types
@@ -255,14 +249,6 @@ interface IDrawerPayload {
   entityId?: string | number;
   mode?: 'view' | 'edit' | 'create';
   [key: string]: unknown;
-}
-
-interface IDrawerDefinition {
-  type: string;
-  component: ComponentType | LazyExoticComponent;
-  width?: number | string;
-  confirmOnDirtyClose?: boolean;
-  closeConfirmMessage?: string;
 }
 
 interface IDrawerContext<T> {
@@ -283,19 +269,15 @@ interface IDrawerContext<T> {
 
 ```
 domains/
+├── drawers.tsx                # Centralized drawer definitions
 ├── products/
-│   ├── drawers/
-│   │   ├── types.ts           # Payload types + module augmentation
-│   │   ├── ProductDrawer.tsx  # Drawer component
-│   │   └── index.ts           # Registration + hooks
-│   ├── page/
-│   └── register.tsx           # Calls registerProductDrawers()
+│   └── drawers/
+│       ├── types.ts           # Payload types + module augmentation
+│       └── ProductDrawer.tsx  # Drawer component
 ├── orders/
-│   ├── drawers/
-│   │   ├── types.ts
-│   │   ├── OrderDrawer.tsx
-│   │   └── index.ts
-│   └── register.tsx
+│   └── drawers/
+│       ├── types.ts
+│       └── OrderDrawer.tsx
 ```
 
 ### Opening Nested Drawers
@@ -345,27 +327,36 @@ const openCreate = useDrawer('product-create');
 openCreate({ mode: 'create', categoryId: 'electronics' });
 ```
 
-## Migration from Legacy API
+## Adding a New Drawer
 
-The module maintains backward compatibility with the legacy API:
+1. **Create the drawer component** in your domain:
+   ```
+   domains/mymodule/drawers/MyDrawer.tsx
+   ```
 
-```tsx
-// Legacy (deprecated)
-import { useDrawersStore, DrawerTypes } from '@/layouts/drawers';
-const addDrawer = useDrawersStore((state) => state.addDrawer);
-addDrawer({ type: DrawerTypes.PRODUCT, entityId: '123' });
+2. **Define payload types** with module augmentation:
+   ```
+   domains/mymodule/drawers/types.ts
+   ```
 
-// New (recommended)
-import { useDrawer } from '@/layouts/drawers';
-const openProduct = useDrawer('product');
-openProduct({ entityId: '123' });
-```
+3. **Add to drawer definitions**:
+   ```tsx
+   // domains/drawers.tsx
+   {
+     type: 'my-drawer',
+     component: dynamic(() =>
+       import('@/domains/mymodule/drawers/MyDrawer').then(m => m.MyDrawer)
+     ),
+   }
+   ```
+
+4. **Import types where needed** and use `useDrawer('my-drawer')`
 
 ## Best Practices
 
 1. **Always use module augmentation** for type safety
 2. **Use `next/dynamic`** for lazy loading drawer components
-3. **Register drawers early** in your module's initialization
-4. **Create typed hooks** using `createDrawerHook` for each drawer
-5. **Keep drawer components in their domain** folder
-6. **Use meaningful type names** that reflect the entity and action (e.g., `product`, `product-create`, `product-bulk-edit`)
+3. **Keep drawer components in their domain** folder
+4. **Centralize definitions** in `domains/drawers.tsx`
+5. **Use meaningful type names** that reflect the entity and action (e.g., `product`, `product-create`, `product-bulk-edit`)
+6. **Import type files** where you use `useDrawer()` for proper TypeScript inference

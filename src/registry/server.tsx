@@ -1,7 +1,8 @@
 import React, { type ComponentType } from "react";
 import { notFound } from "next/navigation";
 import { moduleRegistry, type ModulePageProps } from "./registry";
-import { SidebarItemsProvider } from "./client";
+import { ModuleProvider, SidebarItemsProvider } from "./client";
+import type { IDrawerDefinition } from "@/layouts/drawers/types";
 
 // ============================================================================
 // Page Factory
@@ -65,20 +66,38 @@ export function createPage(options: CreatePageOptions = {}) {
 
 export interface CreateLayoutOptions {
   modulesContext: ReturnType<typeof require.context>;
+  /** Function that returns drawer definitions for client-side registration */
+  getDrawers?: () => IDrawerDefinition[];
 }
 
 /**
  * Factory function to create layout exports with sidebar items from modules.
+ *
+ * @example
+ * ```tsx
+ * // app/[[...slug]]/layout.tsx
+ * import { createLayout } from "@/registry";
+ * import { getDrawerDefinitions } from "@/domains/drawers";
+ *
+ * const { Layout } = createLayout({
+ *   modulesContext: require.context("../../domains", true, /(register|domain)\.tsx?$/),
+ *   getDrawers: getDrawerDefinitions,
+ * });
+ * ```
  */
 export function createLayout(options: CreateLayoutOptions) {
-  const { modulesContext } = options;
+  const { modulesContext, getDrawers } = options;
 
   modulesContext.keys().forEach((key) => modulesContext(key));
 
   const sidebarItems = moduleRegistry.getSidebarItems();
 
   function Layout({ children }: { children: React.ReactNode }) {
-    return <SidebarItemsProvider items={sidebarItems}>{children}</SidebarItemsProvider>;
+    return (
+      <ModuleProvider sidebarItems={sidebarItems} getDrawers={getDrawers}>
+        {children}
+      </ModuleProvider>
+    );
   }
 
   return { Layout, sidebarItems };

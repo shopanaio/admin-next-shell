@@ -1,10 +1,6 @@
 import { registerModule } from "@/registry";
 import dynamic from "next/dynamic";
 import { ShoppingOutlined } from "@ant-design/icons";
-import { registerProductDrawers } from "./drawers";
-
-// Register product drawers
-registerProductDrawers();
 
 registerModule({
   key: "products",
