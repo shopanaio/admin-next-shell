@@ -14,7 +14,7 @@ registerModule({
     {
       key: "products-list",
       path: "/products",
-      component: dynamic(() => import("@/modules/inventory/products/page/page")),
+      component: dynamic(() => import("@/domains/inventory/products/page/page")),
       sidebar: {
         label: "All Products",
         order: 1,
