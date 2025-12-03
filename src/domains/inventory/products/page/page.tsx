@@ -1,13 +1,22 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Tag, Image, Typography, Flex } from "antd";
+import { Tag, Image, Typography, Flex, Button } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import { ColumnsType } from "antd/es/table";
-import { TableLayout } from "@/layouts/table/components/TableLayout";
+import { DataLayout } from "@/layouts/data";
+import { DataTable } from "@/layouts/table/components/Table";
+import { TablePagination } from "@/layouts/table/components/Pagination";
+import { Actions } from "@/layouts/table/components/Navigation/Actions";
+import {
+  TableTopBorder,
+  TableBottomBorder,
+} from "@/layouts/table/components/TableBorders";
 import {
   useFilters,
   FilterType,
   FilterOperator,
+  FilterWidget,
   numberOperators,
   stringOperators,
   enumOperators,
@@ -17,7 +26,7 @@ import {
 import { useDrawer } from "@/layouts/drawers";
 
 // Import types for type-safe drawer payload
-import '../drawers/types';
+import "../drawers/types";
 
 interface IProduct {
   id: string;
@@ -30,108 +39,72 @@ interface IProduct {
   image: string;
 }
 
-const mockProducts: IProduct[] = [
-  {
-    id: "1",
-    name: "iPhone 15 Pro Max",
-    sku: "APL-IPH15PM-256",
-    price: 1199,
-    stock: 45,
-    status: "active",
-    category: "Electronics",
-    image: "https://picsum.photos/seed/1/40/40",
-  },
-  {
-    id: "2",
-    name: "Samsung Galaxy S24 Ultra",
-    sku: "SAM-GS24U-512",
-    price: 1299,
-    stock: 32,
-    status: "active",
-    category: "Electronics",
-    image: "https://picsum.photos/seed/2/40/40",
-  },
-  {
-    id: "3",
-    name: "MacBook Pro 16",
-    sku: "APL-MBP16-M3",
-    price: 2499,
-    stock: 18,
-    status: "active",
-    category: "Computers",
-    image: "https://picsum.photos/seed/3/40/40",
-  },
-  {
-    id: "4",
-    name: "Sony WH-1000XM5",
-    sku: "SNY-WH1000XM5",
-    price: 399,
-    stock: 0,
-    status: "archived",
-    category: "Audio",
-    image: "https://picsum.photos/seed/4/40/40",
-  },
-  {
-    id: "5",
-    name: "iPad Air M2",
-    sku: "APL-IPADAIR-M2",
-    price: 799,
-    stock: 56,
-    status: "active",
-    category: "Electronics",
-    image: "https://picsum.photos/seed/5/40/40",
-  },
-  {
-    id: "6",
-    name: "Dell XPS 15",
-    sku: "DEL-XPS15-I7",
-    price: 1899,
-    stock: 12,
-    status: "active",
-    category: "Computers",
-    image: "https://picsum.photos/seed/6/40/40",
-  },
-  {
-    id: "7",
-    name: "AirPods Pro 2",
-    sku: "APL-APP2-USB",
-    price: 249,
-    stock: 89,
-    status: "active",
-    category: "Audio",
-    image: "https://picsum.photos/seed/7/40/40",
-  },
-  {
-    id: "8",
-    name: "Google Pixel 8 Pro",
-    sku: "GOO-PX8P-256",
-    price: 999,
-    stock: 5,
-    status: "draft",
-    category: "Electronics",
-    image: "https://picsum.photos/seed/8/40/40",
-  },
-  {
-    id: "9",
-    name: "Nintendo Switch OLED",
-    sku: "NTD-SWOLED-WHT",
-    price: 349,
-    stock: 27,
-    status: "active",
-    category: "Gaming",
-    image: "https://picsum.photos/seed/9/40/40",
-  },
-  {
-    id: "10",
-    name: "Logitech MX Master 3S",
-    sku: "LOG-MXM3S-BLK",
-    price: 99,
-    stock: 143,
-    status: "active",
-    category: "Accessories",
-    image: "https://picsum.photos/seed/10/40/40",
-  },
+const productNames = [
+  "iPhone 15 Pro Max",
+  "Samsung Galaxy S24 Ultra",
+  "MacBook Pro 16",
+  "Sony WH-1000XM5",
+  "iPad Air M2",
+  "Dell XPS 15",
+  "AirPods Pro 2",
+  "Google Pixel 8 Pro",
+  "Nintendo Switch OLED",
+  "Logitech MX Master 3S",
+  "Sony PlayStation 5",
+  "Xbox Series X",
+  "LG OLED TV 55",
+  "Bose QuietComfort 45",
+  "Canon EOS R5",
+  "DJI Mavic 3 Pro",
+  "Apple Watch Ultra 2",
+  "Samsung Galaxy Watch 6",
+  "Razer BlackWidow V4",
+  "SteelSeries Arctis Nova",
+  "ASUS ROG Strix",
+  "MSI Titan GT77",
+  "Lenovo ThinkPad X1",
+  "HP Spectre x360",
+  "Acer Predator Helios",
+  "Corsair K100 RGB",
+  "Elgato Stream Deck",
+  "Blue Yeti X",
+  "Shure SM7B",
+  "Rode NT1",
+  "Wacom Cintiq Pro",
+  "Huion Kamvas 24",
+  "BenQ PD3220U",
+  "LG UltraGear 27",
+  "Samsung Odyssey G9",
+  "Secretlab Titan",
+  "Herman Miller Aeron",
+  "Dyson V15 Detect",
+  "iRobot Roomba j7",
+  "Sonos Arc",
+  "KEF LS50 Meta",
+  "Sennheiser HD 800S",
+  "Focal Clear MG",
+  "Anker PowerCore",
+  "Belkin MagSafe",
+  "CalDigit TS4",
+  "OWC Thunderbay",
+  "Synology DS923+",
+  "QNAP TS-464",
+  "Ubiquiti Dream Machine",
 ];
+
+const categories = ["Electronics", "Computers", "Audio", "Gaming", "Accessories"];
+const statuses: IProduct["status"][] = ["active", "draft", "archived"];
+
+const mockProducts: IProduct[] = Array.from({ length: 50 }, (_, i) => ({
+  id: String(i + 1),
+  name: productNames[i % productNames.length],
+  sku: `SKU-${String(i + 1).padStart(4, "0")}`,
+  price: Math.floor(Math.random() * 2000) + 99,
+  stock: Math.floor(Math.random() * 150),
+  status: statuses[i % 10 === 0 ? 2 : i % 7 === 0 ? 1 : 0],
+  category: categories[i % categories.length],
+  image: `https://picsum.photos/seed/${i + 1}/40/40`,
+}));
 
 const statusColors: Record<IProduct["status"], string> = {
   active: "green",
@@ -315,10 +288,12 @@ function applyFiltersToData(
 export default function ProductsPage() {
   const [selectedRows, setSelectedRows] = useState<IProduct[]>([]);
   const [searchValue, setSearchValue] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const { filters, widgetProps } = useFilters({ schema: filterSchema });
 
   // New typed drawer hook
-  const openProductDrawer = useDrawer('product');
+  const openProductDrawer = useDrawer("product");
 
   const filteredProducts = useMemo(() => {
     return applyFiltersToData(mockProducts, filters, searchValue);
@@ -341,47 +316,69 @@ export default function ProductsPage() {
     console.log("Archive products:", rows);
   };
 
+  const clearSelectedRows = () => setSelectedRows([]);
+
   return (
-    <TableLayout<IProduct>
+    <DataLayout
       name="products"
-      headerProps={{
-        title: "Products",
-        count: filteredProducts.length,
-        create: handleCreate,
-        createLabel: "Add Product",
-      }}
-      navigationProps={{
-        filtersProps: widgetProps,
-        searchProps: {
-          searchValue,
-          onChangeSearchValue: setSearchValue,
-        },
-        selectedRowsProps: {
-          selectedRows,
-          onChangeSelectedRows: setSelectedRows,
-          clearSelectedRows: () => setSelectedRows([]),
-        },
-        actionsProps: {
-          onDelete: handleDelete,
-          onArchive: handleArchive,
-        },
-      }}
-      tableProps={{
-        name: "products",
-        data: filteredProducts,
-        columns,
-        onRow: handleRowClick,
-        selectedRows,
-        onChangeSelectedRows: setSelectedRows,
-      }}
-      paginationProps={{
-        page: 1,
-        pageSize: 10,
-        total: filteredProducts.length,
-        onChangePage: (page) => {
-          console.log("Page changed:", page);
-        },
-      }}
-    />
+      title="Products"
+      count={filteredProducts.length}
+      actions={
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+          Add Product
+        </Button>
+      }
+    >
+      <DataLayout.Toolbar
+        left={
+          <>
+            {selectedRows.length > 0 && (
+              <Actions
+                selectedRows={selectedRows}
+                clearSelectedRows={clearSelectedRows}
+                onDelete={handleDelete}
+                onArchive={handleArchive}
+              />
+            )}
+            <FilterWidget
+              {...widgetProps}
+              searchProps={{
+                searchValue,
+                onChangeSearchValue: setSearchValue,
+              }}
+            />
+          </>
+        }
+      />
+
+      <TableTopBorder />
+      <div
+        style={{
+          backgroundColor: "var(--color-gray-1)",
+          borderLeft: "1px solid var(--color-border)",
+          borderRight: "1px solid var(--color-border)",
+        }}
+      >
+        <DataTable
+          name="products"
+          data={filteredProducts}
+          columns={columns}
+          onRow={handleRowClick}
+          selectedRows={selectedRows}
+          onChangeSelectedRows={setSelectedRows}
+        />
+      </div>
+      <TableBottomBorder />
+
+      <DataLayout.Footer>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          total={filteredProducts.length}
+          onChangePage={setPage}
+          onChangePageSize={setPageSize}
+        />
+      </DataLayout.Footer>
+    </DataLayout>
   );
 }
