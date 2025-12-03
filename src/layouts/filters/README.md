@@ -23,6 +23,7 @@ A universal filtering system that is API-agnostic. Supports pluggable adapters f
 - [Creating an Adapter](#creating-an-adapter)
 - [Registering RelationControl](#registering-relationcontrol)
 - [Examples](#examples)
+- [Roadmap](#roadmap)
 
 ---
 
@@ -966,3 +967,28 @@ src/layouts/filters/
 ├── index.ts              # Public API
 └── README.md
 ```
+
+---
+
+## Roadmap
+
+### High Priority
+
+- [ ] **Replace `document.querySelector` with React refs** — `FilterWidget.tsx` uses direct DOM queries which breaks with multiple widgets on page
+- [ ] **Add URL serialization** — Functions to save/restore filters from URL query params
+- [ ] **Add i18n support** — Extract hardcoded labels (`'Is equal to'`, `'True'`, etc.) to translation keys
+
+### Medium Priority
+
+- [ ] **Add filter validation** — Built-in validation for filter values before applying
+- [ ] **Add debounce for text inputs** — Prevent excessive re-renders on typing in `FilterValueControl`
+- [ ] **Fix boolean value handling** — Remove string conversion in boolean filters (`FilterValueControl.tsx:175`)
+- [ ] **Reuse `findFilter` in `useFilters`** — Remove duplicated `findSchema` logic in hook
+
+### Low Priority
+
+- [ ] **Improve type safety for `IFilterOption`** — Use generics for value type instead of `unknown`
+- [ ] **Remove empty menu prop** — Clean up unused `menu={{ items: [] }}` in `FilterWidget.tsx`
+- [ ] **Extract z-index to CSS variables** — Move hardcoded `z-index: 9` to design tokens
+- [ ] **Fix input trim behavior** — Only trim on blur/submit, not on every change
+- [ ] **Consider registry isolation** — Evaluate singleton pattern for SSR/testing scenarios
