@@ -32,7 +32,7 @@ export interface ModuleMenuItem {
 export interface ModuleConfig {
   path: string;
   component: ComponentType<ModulePageProps>;
-  menuItem?: ModuleMenuItem;
+  sidebar?: ModuleMenuItem;
 }
 
 /**
@@ -57,9 +57,9 @@ export class ModuleRegistry {
   private readonly records: RegisteredModuleRecord[] = [];
 
   register(config: ModuleConfig): void {
-    const { path, component, menuItem } = config;
+    const { path, component, sidebar } = config;
     const matcher = match(path, { decode: decodeURIComponent });
-    const record: RegisteredModuleRecord = { path, component, menuItem, matcher };
+    const record: RegisteredModuleRecord = { path, component, sidebar, matcher };
     this.records.push(record);
   }
 
@@ -82,8 +82,8 @@ export class ModuleRegistry {
 
   getMenuItems(): AntMenuItem[] {
     const menuItems = this.records
-      .filter((r) => r.menuItem)
-      .map((r) => r.menuItem!);
+      .filter((r) => r.sidebar)
+      .map((r) => r.sidebar!);
 
     const topLevel = menuItems.filter((item) => !item.parentKey);
     const children = menuItems.filter((item) => item.parentKey);

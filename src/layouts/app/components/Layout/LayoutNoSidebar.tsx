@@ -1,3 +1,5 @@
+"use client";
+
 import { Layout } from 'antd';
 import { createStyles } from 'antd-style';
 import { ReactNode } from 'react';

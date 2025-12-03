@@ -1,3 +1,5 @@
+"use client";
+
 import { Layout } from "antd";
 import { Sidebar } from "@/layouts/app/components/Sidebar/Sidebar";
 import { createStyles } from "antd-style";
