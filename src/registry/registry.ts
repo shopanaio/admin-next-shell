@@ -17,6 +17,7 @@ export interface ModulePageProps {
  */
 export interface SidebarConfig {
   label: string;
+  icon?: ReactNode;
   order?: number;
 }
 
@@ -159,12 +160,14 @@ export class ModuleRegistry {
             .map((item): SidebarItem => ({
               key: item.key,
               label: item.sidebar!.label,
+              icon: item.sidebar!.icon,
               path: item.path,
             }));
 
           return {
             key: mod.key,
             label: mod.sidebar.label,
+            icon: mod.sidebar.icon,
             children: moduleChildren.length > 0 ? moduleChildren : undefined,
           };
         });

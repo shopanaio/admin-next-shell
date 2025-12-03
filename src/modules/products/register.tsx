@@ -1,11 +1,13 @@
 import { registerModule } from "@/registry";
 import dynamic from "next/dynamic";
+import { ShoppingOutlined } from "@ant-design/icons";
 
 registerModule({
   key: "products",
   domain: "inventory",
   sidebar: {
     label: "Products",
+    icon: <ShoppingOutlined />,
     order: 1,
   },
   items: [
