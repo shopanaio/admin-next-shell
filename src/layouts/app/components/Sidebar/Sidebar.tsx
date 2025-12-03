@@ -1,9 +1,57 @@
-import { useState } from "react";
-import { ConfigProvider, Layout, Menu, MenuProps } from "antd";
+import { useState, useMemo, createElement } from "react";
+import { ConfigProvider, Layout, Menu, MenuProps, Typography } from "antd";
 import { StoreMenu } from "@/layouts/app/components/StoreMenu/StoreMenu";
 import { SidebarLogo } from "@/layouts/app/components/Sidebar/SidebarLogo";
 import { createStyles } from "antd-style";
-import { useMenuItems } from "@/registry";
+import { moduleRegistry, type SidebarItem } from "@/registry";
+import { SubitemIcon } from "@/ui-kit/Arrows/Arrows";
+
+type AntMenuItem = NonNullable<MenuProps["items"]>[number];
+
+function buildMenuItems(
+  items: SidebarItem[],
+  isSubitem = false,
+  parentChildrenCount = 0
+): AntMenuItem[] {
+  return items.map((item, index) => {
+    const isFinal = isSubitem && index === parentChildrenCount - 1;
+    const icon = isSubitem
+      ? <SubitemIcon isFinal={isFinal} />
+      : item.icon
+        ? createElement(item.icon)
+        : undefined;
+
+    if (item.type === "group") {
+      return {
+        key: item.key,
+        label: (
+          <Typography.Text ellipsis type="secondary">
+            {item.label}
+          </Typography.Text>
+        ),
+        type: "group" as const,
+        children: item.children
+          ? buildMenuItems(item.children, false, 0)
+          : [],
+      };
+    }
+
+    if (item.children && item.children.length > 0) {
+      return {
+        key: item.key,
+        label: item.label,
+        icon,
+        children: buildMenuItems(item.children, true, item.children.length),
+      };
+    }
+
+    return {
+      key: item.key,
+      label: item.label,
+      icon,
+    };
+  });
+}
 
 const useStyles = createStyles(
   ({ css }, { collapsed }: { collapsed: boolean }) => ({
@@ -43,7 +91,8 @@ const useStyles = createStyles(
 );
 
 export const Sidebar = () => {
-  const menuItems = useMenuItems();
+  const sidebarItems = moduleRegistry.getSidebarItems();
+  const menuItems = useMemo(() => buildMenuItems(sidebarItems), [sidebarItems]);
   const [collapsed, setCollapsed] = useState(false);
   const [selectedKeys] = useState<string[]>([]);
   const [openKeys, setOpenKeys] = useState<string[]>([]);

@@ -1,10 +1,7 @@
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType } from "react";
 import { match, type MatchFunction, type ParamData } from "path-to-regexp";
-import type { MenuProps } from "antd";
 
 export type { ParamData };
-
-export type AntMenuItem = NonNullable<MenuProps["items"]>[number];
 
 /**
  * Props contract for module page components.
@@ -16,14 +13,15 @@ export interface ModulePageProps {
 }
 
 /**
- * Menu item configuration for module sidebar navigation.
+ * Sidebar item configuration.
  */
-export interface ModuleMenuItem {
+export interface SidebarItem {
   key: string;
   label: string;
-  icon?: ReactNode;
-  parentKey?: string;
+  icon?: ComponentType;
   order?: number;
+  type?: "group";
+  children?: SidebarItem[];
 }
 
 /**
@@ -32,7 +30,7 @@ export interface ModuleMenuItem {
 export interface ModuleConfig {
   path: string;
   component: ComponentType<ModulePageProps>;
-  sidebar?: ModuleMenuItem;
+  sidebar?: SidebarItem;
 }
 
 /**
@@ -80,43 +78,11 @@ export class ModuleRegistry {
     return this.records.map((r) => r.path);
   }
 
-  getMenuItems(): AntMenuItem[] {
-    const menuItems = this.records
+  getSidebarItems(): SidebarItem[] {
+    return this.records
       .filter((r) => r.sidebar)
-      .map((r) => r.sidebar!);
-
-    const topLevel = menuItems.filter((item) => !item.parentKey);
-    const children = menuItems.filter((item) => item.parentKey);
-
-    const result: AntMenuItem[] = topLevel
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      .map((item) => {
-        const itemChildren = children
-          .filter((child) => child.parentKey === item.key)
-          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-          .map((child) => ({
-            key: child.key,
-            label: child.label,
-            icon: child.icon,
-          }));
-
-        if (itemChildren.length > 0) {
-          return {
-            key: item.key,
-            label: item.label,
-            icon: item.icon,
-            children: itemChildren,
-          };
-        }
-
-        return {
-          key: item.key,
-          label: item.label,
-          icon: item.icon,
-        };
-      });
-
-    return result;
+      .map((r) => r.sidebar!)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }
 }
 

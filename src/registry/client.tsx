@@ -1,23 +1,23 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import type { AntMenuItem } from "./registry";
+import type { SidebarItem } from "./registry";
 
-const MenuItemsContext = createContext<AntMenuItem[]>([]);
+const SidebarItemsContext = createContext<SidebarItem[]>([]);
 
-interface MenuItemsProviderProps {
+interface SidebarItemsProviderProps {
   children: ReactNode;
-  items: AntMenuItem[];
+  items: SidebarItem[];
 }
 
-export function MenuItemsProvider({ children, items }: MenuItemsProviderProps) {
+export function SidebarItemsProvider({ children, items }: SidebarItemsProviderProps) {
   return (
-    <MenuItemsContext.Provider value={items}>
+    <SidebarItemsContext.Provider value={items}>
       {children}
-    </MenuItemsContext.Provider>
+    </SidebarItemsContext.Provider>
   );
 }
 
-export function useMenuItems(): AntMenuItem[] {
-  return useContext(MenuItemsContext);
+export function useSidebarItems(): SidebarItem[] {
+  return useContext(SidebarItemsContext);
 }

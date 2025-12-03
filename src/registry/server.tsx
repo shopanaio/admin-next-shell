@@ -1,7 +1,7 @@
 import React, { type ComponentType } from "react";
 import { notFound } from "next/navigation";
 import { moduleRegistry, type ModulePageProps } from "./registry";
-import { MenuItemsProvider } from "./client";
+import { SidebarItemsProvider } from "./client";
 
 // ============================================================================
 // Page Factory
@@ -68,18 +68,18 @@ export interface CreateLayoutOptions {
 }
 
 /**
- * Factory function to create layout exports with menu items from modules.
+ * Factory function to create layout exports with sidebar items from modules.
  */
 export function createLayout(options: CreateLayoutOptions) {
   const { modulesContext } = options;
 
   modulesContext.keys().forEach((key) => modulesContext(key));
 
-  const menuItems = moduleRegistry.getMenuItems();
+  const sidebarItems = moduleRegistry.getSidebarItems();
 
   function Layout({ children }: { children: React.ReactNode }) {
-    return <MenuItemsProvider items={menuItems}>{children}</MenuItemsProvider>;
+    return <SidebarItemsProvider items={sidebarItems}>{children}</SidebarItemsProvider>;
   }
 
-  return { Layout, menuItems };
+  return { Layout, sidebarItems };
 }

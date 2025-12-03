@@ -1,9 +1,8 @@
 // Shared types and registry
 export {
   type ParamData,
-  type AntMenuItem,
   type ModulePageProps,
-  type ModuleMenuItem,
+  type SidebarItem,
   type ModuleConfig,
   type RegisteredModuleRecord,
   type ModuleMatchResult,
@@ -21,4 +20,4 @@ export {
 } from "./server";
 
 // Client-side context and hooks
-export { MenuItemsProvider, useMenuItems } from "./client";
+export { SidebarItemsProvider, useSidebarItems } from "./client";
