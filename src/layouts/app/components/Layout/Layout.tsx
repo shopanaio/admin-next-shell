@@ -27,7 +27,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const { styles } = useStyles();
 
   return (
-    <Layout className={styles.layout}>
+    <Layout className={styles.layout} hasSider>
       <Sidebar />
       <Layout>{children}</Layout>
     </Layout>
