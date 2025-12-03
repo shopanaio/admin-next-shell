@@ -1,4 +1,4 @@
-import { Layout, MenuProps } from "antd";
+import { Layout } from "antd";
 import { Sidebar } from "@/layouts/app/components/Sidebar/Sidebar";
 import { createStyles } from "antd-style";
 import { ReactNode } from "react";
@@ -19,15 +19,14 @@ const useStyles = createStyles({
 
 interface AppLayoutProps {
   children?: ReactNode;
-  menuItems?: MenuProps["items"];
 }
 
-export const AppLayout = ({ children, menuItems }: AppLayoutProps) => {
+export const AppLayout = ({ children }: AppLayoutProps) => {
   const { styles } = useStyles();
 
   return (
-    <Layout data-testid="project-layout" className={styles.layout}>
-      <Sidebar menuItems={menuItems} />
+    <Layout className={styles.layout}>
+      <Sidebar />
       <Layout>{children}</Layout>
     </Layout>
   );

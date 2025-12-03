@@ -3,6 +3,7 @@ import { ConfigProvider, Layout, Menu, MenuProps } from "antd";
 import { StoreMenu } from "@/layouts/app/components/StoreMenu/StoreMenu";
 import { SidebarLogo } from "@/layouts/app/components/Sidebar/SidebarLogo";
 import { createStyles } from "antd-style";
+import { useMenuItems } from "@/registry";
 
 const useStyles = createStyles(
   ({ css }, { collapsed }: { collapsed: boolean }) => ({
@@ -41,11 +42,8 @@ const useStyles = createStyles(
   })
 );
 
-interface Props extends MenuProps {
-  menuItems?: MenuProps["items"];
-}
-
-export const Sidebar = ({ menuItems = [], ...menuProps }: Props) => {
+export const Sidebar = () => {
+  const menuItems = useMenuItems();
   const [collapsed, setCollapsed] = useState(false);
   const [selectedKeys] = useState<string[]>([]);
   const [openKeys, setOpenKeys] = useState<string[]>([]);
@@ -96,7 +94,6 @@ export const Sidebar = ({ menuItems = [], ...menuProps }: Props) => {
             }}
           >
             <Menu
-              {...menuProps}
               className={styles.menu}
               selectedKeys={selectedKeys}
               theme="light"
