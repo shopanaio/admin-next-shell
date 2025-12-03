@@ -1,9 +1,11 @@
+"use client";
+
 import { useState, useMemo } from "react";
 import { ConfigProvider, Layout, Menu, MenuProps, Typography } from "antd";
 import { StoreMenu } from "@/layouts/app/components/StoreMenu/StoreMenu";
 import { SidebarLogo } from "@/layouts/app/components/Sidebar/SidebarLogo";
 import { createStyles } from "antd-style";
-import { moduleRegistry, type SidebarItem } from "@/registry";
+import { useSidebarItems, type SidebarItem } from "@/registry";
 import { SubitemIcon } from "@/ui-kit/Arrows/Arrows";
 
 type AntMenuItem = NonNullable<MenuProps["items"]>[number];
@@ -89,7 +91,7 @@ const useStyles = createStyles(
 );
 
 export const Sidebar = () => {
-  const sidebarItems = moduleRegistry.getSidebarItems();
+  const sidebarItems = useSidebarItems();
   const menuItems = useMemo(() => buildMenuItems(sidebarItems), [sidebarItems]);
   const [collapsed, setCollapsed] = useState(false);
   const [selectedKeys] = useState<string[]>([]);
