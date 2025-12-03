@@ -2,12 +2,15 @@
 export {
   type ParamData,
   type ModulePageProps,
+  type ModuleSidebarItem,
   type SidebarItem,
+  type DomainConfig,
   type ModuleConfig,
   type RegisteredModuleRecord,
   type ModuleMatchResult,
   ModuleRegistry,
   moduleRegistry,
+  registerDomain,
   registerModule,
 } from "./registry";
 

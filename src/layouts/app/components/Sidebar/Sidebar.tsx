@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ConfigProvider, Layout, Menu, MenuProps, Typography } from "antd";
+import { ConfigProvider, Layout, Menu, MenuProps } from "antd";
 import { StoreMenu } from "@/layouts/app/components/StoreMenu/StoreMenu";
 import { SidebarLogo } from "@/layouts/app/components/Sidebar/SidebarLogo";
 import { createStyles } from "antd-style";
@@ -20,21 +20,6 @@ function buildMenuItems(
     const icon = isSubitem
       ? <SubitemIcon isFinal={isFinal} />
       : item.icon;
-
-    if (item.type === "group") {
-      return {
-        key: item.key,
-        label: (
-          <Typography.Text ellipsis type="secondary">
-            {item.label}
-          </Typography.Text>
-        ),
-        type: "group" as const,
-        children: item.children
-          ? buildMenuItems(item.children, false, 0)
-          : [],
-      };
-    }
 
     if (item.children && item.children.length > 0) {
       return {
