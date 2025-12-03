@@ -1,23 +1,86 @@
 'use client';
 
-import { DatePicker, Input, InputNumber, Select } from 'antd';
+import { DatePicker, Input, InputNumber, Select, SelectProps, Tag, Tooltip } from 'antd';
 import type { Dayjs } from 'dayjs';
+import { CloseOutlined } from '@ant-design/icons';
 import { FilterType, FilterOperator, IFilterSchema, IFilterValue } from '../../core/types';
 import { isMultipleValueOperator } from '../../core/operators';
 import { RelationControl } from '../RelationControl';
 
+const cropString = (str: string, maxLength: number) => {
+  if (str.length <= maxLength) return str;
+  return str.slice(0, maxLength) + '...';
+};
+
+export const getUiFilterSelectProps = (
+  value: unknown[],
+  { closable: closableProp = true }: { closable?: boolean } = {},
+) => {
+  return {
+    variant: 'borderless',
+    suffixIcon: null,
+    maxTagCount: 1,
+    autoFocus: true,
+    mode: 'multiple',
+    showSearch: false,
+    dropdownStyle: {
+      minWidth: 200,
+    },
+    style: value?.length
+      ? { width: 'fit-content' }
+      : { width: '100%', minWidth: 80 },
+
+    tagRender: ({
+      label,
+      onClose,
+      closable,
+    }: {
+      label: string;
+      onClose: (e: React.MouseEvent<HTMLElement>) => void;
+      closable: boolean;
+    }) => {
+      return (
+        <Tooltip
+          title={label}
+          mouseEnterDelay={0.5}
+          placement="topLeft"
+          arrow={false}
+        >
+          <Tag
+            onClose={onClose}
+            closable={closable && closableProp}
+            closeIcon={<CloseOutlined style={{ color: 'white' }} />}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--x1)',
+              margin: '0 2px',
+              fontSize: 'var(--font-size)',
+              backgroundColor: 'var(--color-gray-10)',
+              color: 'var(--color-gray-1)',
+              borderColor: 'var(--color-gray-10)',
+            }}
+          >
+            {cropString(label, 14)}
+          </Tag>
+        </Tooltip>
+      );
+    },
+  } as Partial<SelectProps>;
+};
+
 export interface IFilterValueControlProps {
-  schema: IFilterSchema | null;
+  filter: IFilterSchema | null;
   value: IFilterValue;
   onChange: (value: unknown) => void;
 }
 
 export const FilterValueControl = ({
-  schema,
+  filter,
   value: filterValue,
   onChange,
 }: IFilterValueControlProps) => {
-  if (!schema || !filterValue) {
+  if (!filter || !filterValue) {
     return <Input disabled value="No value" style={{ width: 100 }} variant="borderless" />;
   }
 
@@ -69,10 +132,10 @@ export const FilterValueControl = ({
   }
 
   // Relation type
-  if (type === FilterType.Relation && schema.entity) {
+  if (type === FilterType.Relation && filter.entity) {
     return (
       <RelationControl
-        entity={schema.entity}
+        entity={filter.entity}
         value={value}
         onChange={onChange}
         isMultiple={isMultiple}
@@ -82,36 +145,36 @@ export const FilterValueControl = ({
   }
 
   // Enum type or any type with options
-  if (schema.options?.length) {
+  if (filter.options?.length) {
     return (
       <Select
-        options={schema.options.map((opt) => ({
+        options={filter.options.map((opt) => ({
           label: opt.label,
           value: opt.value as string | number,
         }))}
         placeholder="Select..."
         value={value}
         onChange={onChange}
-        mode={isMultiple ? 'multiple' : undefined}
-        variant="borderless"
-        style={{ minWidth: 100 }}
+        maxCount={isMultiple ? undefined : 1}
+        {...getUiFilterSelectProps(Array.isArray(value) ? value : [])}
       />
     );
   }
 
   // Boolean type
   if (type === FilterType.Boolean) {
+    const boolValue = Array.isArray(value) ? value : value !== undefined ? [value] : [];
     return (
       <Select
         options={[
-          { label: 'True', value: true },
-          { label: 'False', value: false },
+          { label: 'True', value: 'true' },
+          { label: 'False', value: 'false' },
         ]}
         placeholder="Select..."
-        value={Array.isArray(value) ? value?.[0] : value}
-        onChange={(v) => onChange([v])}
-        variant="borderless"
-        style={{ minWidth: 80 }}
+        value={boolValue.map((v) => String(v))}
+        onChange={(v) => onChange(v.map((s: string) => s === 'true'))}
+        maxCount={1}
+        {...getUiFilterSelectProps(boolValue)}
       />
     );
   }

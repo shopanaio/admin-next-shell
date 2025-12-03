@@ -38,44 +38,21 @@ export const FilterWidget = ({
   filterButtonLabel = 'Filter',
 }: IFilterWidgetProps) => {
   const { styles } = useStyles();
-  const [nestedPath, setNestedPath] = useState<IFilterSchema[]>([]);
+  const [nestedOptions, setNestedOptions] = useState<IFilterSchema[]>([]);
   const [open, setOpen] = useState(false);
 
-  // Update a filter at specific index
-  const updateFilter = useCallback(
-    (index: number, updates: Partial<IFilterValue>) => {
-      onChange([
-        ...value.slice(0, index),
-        { ...value[index], ...updates },
-        ...value.slice(index + 1),
-      ]);
+  const update = useCallback(
+    (idx: number, nextValue: IFilterValue) => {
+      onChange([...value.slice(0, idx), nextValue, ...value.slice(idx + 1)]);
     },
     [value, onChange],
   );
 
-  // Remove filter and focus search input
-  const removeFilter = useCallback(
-    (index: number) => {
-      const searchInput = document?.querySelector(
-        'input[data-node-type="filter-search"]',
-      ) as HTMLInputElement;
-      searchInput?.focus();
-      onChange(value.filter((_, i) => i !== index));
-    },
-    [value, onChange],
-  );
-
-  // Handle dropdown open state change
-  const handleOpenChange = useCallback((nextOpen: boolean) => {
-    if (nextOpen) return;
-    setOpen(false);
-    setNestedPath([]);
-  }, []);
 
   // Get current options based on nested path
-  const currentOptions = useMemo(() => {
-    const opts = nestedPath.length
-      ? nestedPath[nestedPath.length - 1]?.children || []
+  const properties = useMemo(() => {
+    const opts = nestedOptions?.length
+      ? nestedOptions.at(-1)?.children || []
       : options;
 
     return [...opts].sort((a, b) => {
@@ -84,46 +61,46 @@ export const FilterWidget = ({
       }
       return 0;
     });
-  }, [options, nestedPath]);
+  }, [options, nestedOptions]);
 
   // Render a filter option row
-  const renderOptionRow = (schema: IFilterSchema) => {
+  const renderRow = (record: IFilterSchema) => {
     return (
       <div
         className={styles.row}
-        key={schema.key}
+        key={record.key}
         onClick={() => {
-          // If has children, navigate into
-          if (schema.children?.length) {
-            setNestedPath([...nestedPath, schema]);
+          if (record.children?.length) {
+            setNestedOptions([...nestedOptions, record]);
             return;
           }
 
-          // Otherwise, add the filter
           setOpen(false);
-          const newFilter: IFilterValue = {
-            schemaKey: schema.key,
-            entity: schema.entity,
-            label: typeof schema.label === 'string' ? schema.label : schema.key,
-            operator: schema.operators[0],
-            type: schema.type,
-            keyPath: nestedPath.length
-              ? [...nestedPath.map((s) => s.key), schema.key]
-              : [schema.key],
-            payloadKey: schema.payloadKey,
-            value: [],
-          };
-          onChange([...value, newFilter]);
+          onChange([
+            ...value,
+            {
+              schemaKey: record.key,
+              entity: record.entity,
+              label: typeof record.label === 'string' ? record.label : record.key,
+              operator: record.operators[0],
+              type: record.type,
+              keyPath: nestedOptions?.length
+                ? [...nestedOptions.map((it) => it.key), record.key]
+                : [record.key],
+              payloadKey: record.payloadKey,
+              value: [],
+            },
+          ]);
         }}
       >
         <div>
           <Button type="text" className={styles.filterLabelButton}>
-            {schema.label}
-            {!!schema.children?.length && <RightOutlined style={{ fontSize: 12 }} />}
+            {record.label}
+            {!!record.children?.length && <RightOutlined style={{ fontSize: 16 }} />}
           </Button>
         </div>
         <div>
-          <Typography.Text type="secondary">{schema.description}</Typography.Text>
+          <Typography.Text type="secondary">{record.description}</Typography.Text>
         </div>
       </div>
     );
@@ -131,65 +108,83 @@ export const FilterWidget = ({
 
   // Render an active filter value
   const renderFilterValue = useCallback(
-    (filter: IFilterValue, index: number) => {
-      const schema = findFilter(filter.keyPath || [], options);
+    (props: { it: IFilterValue; idx: number }) => {
+      const { idx, it } = props;
+      const condition = findFilter(it?.keyPath || [], options);
 
       const operatorButton = (
         <Button
           shape="round"
           size="small"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
         >
-          {operatorsMeta[filter.operator]?.literal || '?'}
+          {operatorsMeta[it?.operator]?.literal || '?'}
         </Button>
       );
 
       return (
         <Badge
-          key={filter.payloadKey || index}
-          data-node-type="filter-close-badge"
+          key={it.payloadKey || idx}
+          data-node-type="ui-filter-close-badge"
           count={
-            !filter.fixed && (
-              <div
-                onClick={() => removeFilter(index)}
-                role="button"
-                data-remove-tag
-                className={styles.filterCloseBadge}
-              >
-                <CloseOutlined style={{ fontSize: 10 }} />
-              </div>
-            )
+            <div
+              onClick={() => {
+                const searchInput = document?.querySelector(
+                  'input[data-node-type="ui-filter-search"]',
+                ) as HTMLInputElement;
+
+                searchInput?.focus();
+                onChange(value.filter((_, i) => i !== idx));
+              }}
+              role="button"
+              data-remove-tag
+              className={styles.filterCloseBadge}
+            >
+              <CloseOutlined />
+            </div>
           }
         >
           <div
-            data-node-type="filter-tag"
-            className={styles.filterNode}
-            tabIndex={0}
-            role="button"
-            onClick={(e) => e.stopPropagation()}
+            data-node-type="ui-filter-tag"
             onKeyDown={(e) => {
               if (e.currentTarget === e.target && e.key === 'Backspace') {
-                removeFilter(index);
+                const searchInput = document?.querySelector(
+                  'input[data-node-type="ui-filter-search"]',
+                ) as HTMLInputElement;
+
+                searchInput?.focus();
+                onChange(value.filter((_, i) => i !== idx));
               }
+            }}
+            role="button"
+            className={styles.filterNode}
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation();
             }}
           >
             <div className={styles.filterNodeLeft}>
-              <Typography.Text ellipsis>{filter.label}</Typography.Text>
+              <Typography.Text ellipsis>{it.label}</Typography.Text>
             </div>
             <div className={styles.filterNodeCenterWrapper}>
               <div className={styles.filterNodeCenter}>
-                {(schema?.operators || []).length > 1 ? (
+                {(condition?.operators || []).length > 1 ? (
                   <Dropdown
                     trigger={['click']}
                     menu={{
-                      items: schema?.operators.map((op) => {
+                      items: condition?.operators.map((op) => {
                         const opMeta = operatorsMeta[op];
                         return {
                           key: opMeta.value,
                           icon: <Tag className={styles.operatorTag}>{opMeta.literal}</Tag>,
                           label: opMeta.label,
                           onClick: () => {
-                            updateFilter(index, { operator: op });
+                            update(idx, {
+                              ...value[idx],
+                              operator: op,
+                            });
                           },
                         };
                       }),
@@ -201,12 +196,18 @@ export const FilterWidget = ({
                   operatorButton
                 )}
               </div>
-              <div data-value-node className={styles.filterNodeRight}>
+              <div
+                data-value-node
+                className={`value-tag ${styles.filterNodeRight}`}
+              >
                 <FilterValueControl
-                  schema={schema}
-                  value={filter}
+                  filter={condition}
+                  value={it}
                   onChange={(nextValue) => {
-                    updateFilter(index, { value: nextValue });
+                    update(idx, {
+                      ...value[idx],
+                      value: nextValue,
+                    });
                   }}
                 />
               </div>
@@ -215,88 +216,98 @@ export const FilterWidget = ({
         </Badge>
       );
     },
-    [options, updateFilter, removeFilter, styles],
-  );
-
-  // Handle search input keydown for backspace navigation
-  const handleSearchKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Backspace' && !searchProps?.searchValue) {
-        const prevNode = e.currentTarget.previousElementSibling as HTMLElement;
-        if (prevNode?.dataset?.nodeType === 'filter-close-badge') {
-          prevNode?.querySelector<HTMLElement>('[data-node-type="filter-tag"]')?.focus();
-        }
-      }
-    },
-    [searchProps?.searchValue],
+    [onChange, options, value, update, styles],
   );
 
   return (
-    <Flex gap="small" align="center" style={{ width: '100%' }}>
-      <Dropdown
-        trigger={['click']}
-        popupRender={() => (
-          <Card styles={{ body: cardBodyStyle }}>
-            {/* Breadcrumb for nested navigation */}
-            {!!nestedPath.length && (
-              <Flex style={{ marginBottom: 'var(--x4)', paddingLeft: 'var(--x2)' }} gap="small" vertical>
-                <Typography.Text strong>Connections</Typography.Text>
-                <Flex gap="small" wrap="wrap">
-                  {nestedPath.map((schema, idx) => (
-                    <Tag
-                      key={schema.key}
-                      closable
-                      onClose={() => setNestedPath(nestedPath.slice(0, idx))}
-                      className={styles.breadcrumbTag}
-                    >
-                      {schema.label}
-                    </Tag>
-                  ))}
+    <>
+      <Flex gap="small" align="center" style={{ width: '100%' }}>
+        <Dropdown
+          trigger={['click']}
+          dropdownRender={() => (
+            <Card styles={{ body: cardBodyStyle }}>
+              {!!nestedOptions?.length && (
+                <Flex style={{ marginBottom: 'var(--x4)', paddingLeft: 'var(--x2)' }} gap="small" vertical>
+                  <Typography.Text strong>Connections</Typography.Text>
+                  <Flex gap="small" wrap>
+                    {nestedOptions.map((it, idx) => (
+                      <Tag
+                        key={it.key}
+                        closeIcon={<CloseOutlined />}
+                        closable
+                        onClose={() => {
+                          setNestedOptions(nestedOptions.slice(0, idx));
+                        }}
+                        className={styles.breadcrumbTag}
+                      >
+                        {it.label}
+                      </Tag>
+                    ))}
+                  </Flex>
                 </Flex>
-              </Flex>
-            )}
-
-            {/* Options list */}
-            <div>
-              <div className={styles.header}>
-                <Typography.Text strong>Name</Typography.Text>
-                <Typography.Text strong>Description</Typography.Text>
+              )}
+              <div>
+                <div className={styles.header}>
+                  <div>
+                    <Typography.Text strong>Name</Typography.Text>
+                  </div>
+                  <div>
+                    <Typography.Text strong>Description</Typography.Text>
+                  </div>
+                </div>
+                {properties.map(renderRow)}
               </div>
-              {currentOptions.map(renderOptionRow)}
-            </div>
-          </Card>
-        )}
-        open={open}
-        onOpenChange={handleOpenChange}
-      >
-        <div className={styles.widgetContainer}>
-          <Button
-            onClick={() => setOpen(true)}
-            icon={<FilterOutlined />}
-            disabled={!options?.length}
-          >
-            {filterButtonLabel}
-          </Button>
-
-          {/* Active filters */}
-          {value.map((filter, idx) => renderFilterValue(filter, idx))}
-
-          {/* Search input */}
-          {searchProps && (
-            <Input
-              className={styles.searchInput}
-              data-node-type="filter-search"
-              variant="borderless"
-              placeholder={searchPlaceholder}
-              value={searchProps.searchValue}
-              onChange={({ target }) => {
-                searchProps.onChangeSearchValue(target.value);
-              }}
-              onKeyDown={handleSearchKeyDown}
-            />
+            </Card>
           )}
-        </div>
-      </Dropdown>
-    </Flex>
+          menu={{
+            mode: 'vertical',
+            items: [],
+          }}
+          open={open}
+          onOpenChange={(nextOpen) => {
+            if (nextOpen) {
+              return;
+            }
+            setOpen(false);
+            setNestedOptions([]);
+          }}
+        >
+          <div className={styles.widgetContainer}>
+            <Button
+              onClick={() => setOpen(true)}
+              icon={<FilterOutlined />}
+              disabled={!options?.length}
+            >
+              {filterButtonLabel}
+            </Button>
+            {value.map((it, idx) => renderFilterValue({ it, idx }))}
+            {searchProps && (
+              <Input
+                className={styles.searchInput}
+                data-node-type="ui-filter-search"
+                variant="borderless"
+                placeholder={searchPlaceholder}
+                value={searchProps.searchValue}
+                onChange={({ target }) => {
+                  searchProps.onChangeSearchValue(target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Backspace' && !searchProps.searchValue) {
+                    const prevNode = e.currentTarget
+                      .previousElementSibling as HTMLElement;
+
+                    if (prevNode?.dataset?.nodeType === 'ui-filter-close-badge') {
+                      prevNode
+                        ?.querySelector<HTMLElement>('[data-filter-node]')
+                        ?.focus();
+                    }
+                  }
+                }}
+              />
+            )}
+          </div>
+        </Dropdown>
+      </Flex>
+    </>
   );
 };

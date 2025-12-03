@@ -17,7 +17,7 @@ export const useStyles = createStyles(({ css }) => ({
     transition: all 0.2s ease;
     width: 100%;
 
-    &:has(input[data-node-type='filter-search']:focus) {
+    &:has(input[data-node-type='ui-filter-search']:focus) {
       outline-color: var(--color-gray-4);
       border-color: var(--color-primary-10);
     }
@@ -37,10 +37,6 @@ export const useStyles = createStyles(({ css }) => ({
 
     &:hover button:first-of-type {
       background-color: var(--color-gray-4);
-    }
-
-    &:last-child {
-      border-bottom: none;
     }
   `,
 
@@ -77,12 +73,10 @@ export const useStyles = createStyles(({ css }) => ({
     &:focus-within {
       outline-color: var(--color-gray-5);
       border-color: var(--color-gray-10);
-    }
 
-    &:hover + [data-remove-tag],
-    &:focus + [data-remove-tag],
-    &:focus-within + [data-remove-tag] {
-      display: flex;
+      & + [data-remove-tag] {
+        display: flex;
+      }
     }
   `,
 
