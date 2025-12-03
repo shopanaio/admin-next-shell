@@ -53,12 +53,23 @@ export const FilterWidget = ({
     [value, onChange],
   );
 
+  // Remove filter and focus search input
+  const removeFilter = useCallback(
+    (index: number) => {
+      const searchInput = document?.querySelector(
+        'input[data-node-type="filter-search"]',
+      ) as HTMLInputElement;
+      searchInput?.focus();
+      onChange(value.filter((_, i) => i !== index));
+    },
+    [value, onChange],
+  );
+
   // Handle dropdown open state change
   const handleOpenChange = useCallback((nextOpen: boolean) => {
-    setOpen(nextOpen);
-    if (!nextOpen) {
-      setNestedPath([]);
-    }
+    if (nextOpen) return;
+    setOpen(false);
+    setNestedPath([]);
   }, []);
 
   // Get current options based on nested path
@@ -108,7 +119,7 @@ export const FilterWidget = ({
         <div>
           <Button type="text" className={styles.filterLabelButton}>
             {schema.label}
-            {!!schema.children?.length && <RightOutlined />}
+            {!!schema.children?.length && <RightOutlined style={{ fontSize: 12 }} />}
           </Button>
         </div>
         <div>
@@ -136,13 +147,13 @@ export const FilterWidget = ({
       return (
         <Badge
           key={filter.payloadKey || index}
+          data-node-type="filter-close-badge"
           count={
             !filter.fixed && (
               <div
-                onClick={() => {
-                  onChange(value.filter((_, i) => i !== index));
-                }}
+                onClick={() => removeFilter(index)}
                 role="button"
+                data-remove-tag
                 className={styles.filterCloseBadge}
               >
                 <CloseOutlined style={{ fontSize: 10 }} />
@@ -151,9 +162,16 @@ export const FilterWidget = ({
           }
         >
           <div
+            data-node-type="filter-tag"
             className={styles.filterNode}
             tabIndex={0}
+            role="button"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.currentTarget === e.target && e.key === 'Backspace') {
+                removeFilter(index);
+              }
+            }}
           >
             <div className={styles.filterNodeLeft}>
               <Typography.Text ellipsis>{filter.label}</Typography.Text>
@@ -183,7 +201,7 @@ export const FilterWidget = ({
                   operatorButton
                 )}
               </div>
-              <div className={styles.filterNodeRight}>
+              <div data-value-node className={styles.filterNodeRight}>
                 <FilterValueControl
                   schema={schema}
                   value={filter}
@@ -197,7 +215,20 @@ export const FilterWidget = ({
         </Badge>
       );
     },
-    [onChange, options, value, updateFilter, styles],
+    [options, updateFilter, removeFilter, styles],
+  );
+
+  // Handle search input keydown for backspace navigation
+  const handleSearchKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Backspace' && !searchProps?.searchValue) {
+        const prevNode = e.currentTarget.previousElementSibling as HTMLElement;
+        if (prevNode?.dataset?.nodeType === 'filter-close-badge') {
+          prevNode?.querySelector<HTMLElement>('[data-node-type="filter-tag"]')?.focus();
+        }
+      }
+    },
+    [searchProps?.searchValue],
   );
 
   return (
@@ -208,7 +239,7 @@ export const FilterWidget = ({
           <Card styles={{ body: cardBodyStyle }}>
             {/* Breadcrumb for nested navigation */}
             {!!nestedPath.length && (
-              <Flex style={{ marginBottom: 'var(--x4)' }} gap="small" vertical>
+              <Flex style={{ marginBottom: 'var(--x4)', paddingLeft: 'var(--x2)' }} gap="small" vertical>
                 <Typography.Text strong>Connections</Typography.Text>
                 <Flex gap="small" wrap="wrap">
                   {nestedPath.map((schema, idx) => (
@@ -261,6 +292,7 @@ export const FilterWidget = ({
               onChange={({ target }) => {
                 searchProps.onChangeSearchValue(target.value);
               }}
+              onKeyDown={handleSearchKeyDown}
             />
           )}
         </div>
