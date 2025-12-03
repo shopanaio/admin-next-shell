@@ -14,7 +14,10 @@ import {
   type IFilterSchema,
   type IFilterValue,
 } from "@/layouts/filters";
-import { useDrawersStore, DrawerTypes } from "@/layouts/drawers";
+import { useDrawer } from "@/layouts/drawers";
+
+// Import types for type-safe drawer payload
+import '../drawers/types';
 
 interface IProduct {
   id: string;
@@ -313,7 +316,9 @@ export default function ProductsPage() {
   const [selectedRows, setSelectedRows] = useState<IProduct[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const { filters, widgetProps } = useFilters({ schema: filterSchema });
-  const addDrawer = useDrawersStore((state) => state.addDrawer);
+
+  // New typed drawer hook
+  const openProductDrawer = useDrawer('product');
 
   const filteredProducts = useMemo(() => {
     return applyFiltersToData(mockProducts, filters, searchValue);
@@ -324,10 +329,8 @@ export default function ProductsPage() {
   };
 
   const handleRowClick = (record: IProduct) => {
-    addDrawer({
-      type: DrawerTypes.PRODUCT,
-      entityId: record.id,
-    });
+    // Type-safe: payload is typed as ProductDrawerPayload
+    openProductDrawer({ entityId: record.id });
   };
 
   const handleDelete = (rows: IProduct[]) => {

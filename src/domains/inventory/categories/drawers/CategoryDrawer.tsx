@@ -1,39 +1,43 @@
 'use client';
 
 import { Typography, Flex, Button, Card, List } from 'antd';
-import { useEntityDrawer } from '../hooks/useEntityDrawer';
+import { useDrawerContext } from '@/layouts/drawers';
+import type { CategoryDrawerPayload } from './types';
 
-const mockCategories: Record<string, {
-  id: string;
-  name: string;
-  description: string;
-  productCount: number;
-}> = {
-  'Electronics': {
+const mockCategories: Record<
+  string,
+  {
+    id: string;
+    name: string;
+    description: string;
+    productCount: number;
+  }
+> = {
+  Electronics: {
     id: 'Electronics',
     name: 'Electronics',
     description: 'Smartphones, tablets, and other electronic devices',
     productCount: 4,
   },
-  'Computers': {
+  Computers: {
     id: 'Computers',
     name: 'Computers',
     description: 'Laptops, desktops, and computer accessories',
     productCount: 2,
   },
-  'Audio': {
+  Audio: {
     id: 'Audio',
     name: 'Audio',
     description: 'Headphones, speakers, and audio equipment',
     productCount: 2,
   },
-  'Gaming': {
+  Gaming: {
     id: 'Gaming',
     name: 'Gaming',
     description: 'Gaming consoles and accessories',
     productCount: 1,
   },
-  'Accessories': {
+  Accessories: {
     id: 'Accessories',
     name: 'Accessories',
     description: 'Computer peripherals and accessories',
@@ -41,14 +45,23 @@ const mockCategories: Record<string, {
   },
 };
 
+/**
+ * Category drawer component
+ * Uses the new typed drawer context API
+ */
 export const CategoryDrawer = () => {
-  const { entityId, close } = useEntityDrawer();
+  const { payload, close } = useDrawerContext<CategoryDrawerPayload>();
 
-  const category = mockCategories[String(entityId)];
+  const category = mockCategories[String(payload.entityId)];
 
   if (!category) {
     return (
-      <Flex vertical align="center" justify="center" style={{ height: '100%', padding: 24 }}>
+      <Flex
+        vertical
+        align="center"
+        justify="center"
+        style={{ height: '100%', padding: 24 }}
+      >
         <Typography.Text type="secondary">Category not found</Typography.Text>
       </Flex>
     );
@@ -71,7 +84,11 @@ export const CategoryDrawer = () => {
         <Button onClick={close}>Close</Button>
       </Flex>
 
-      <Flex vertical style={{ padding: 24, flex: 1, overflow: 'auto' }} gap="middle">
+      <Flex
+        vertical
+        style={{ padding: 24, flex: 1, overflow: 'auto' }}
+        gap="middle"
+      >
         <Card title="Details">
           <Typography.Paragraph>
             <strong>Name:</strong> {category.name}

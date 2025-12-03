@@ -1,8 +1,27 @@
 import { ReactNode } from 'react';
-import { EntityDrawersContext } from '../context/context';
-import { IEntityDrawerItem } from '../types';
+import { DrawerContext, EntityDrawersContext } from '../context/context';
+import type { IDrawerContext, IDrawerPayload, IEntityDrawerItem } from '../types';
 
-interface IProviderProps {
+interface IDrawerProviderProps {
+  children: ReactNode;
+  value: IDrawerContext;
+}
+
+/**
+ * Provider component for drawer context
+ * Wraps drawer content and provides access to drawer state and actions
+ */
+export const DrawerProvider = ({ children, value }: IDrawerProviderProps) => {
+  return (
+    <DrawerContext.Provider value={value}>{children}</DrawerContext.Provider>
+  );
+};
+
+// ============================================================================
+// Legacy support
+// ============================================================================
+
+interface ILegacyProviderProps {
   children: ReactNode;
   drawerItem: IEntityDrawerItem;
   onClose: () => void;
@@ -10,13 +29,14 @@ interface IProviderProps {
   onUpdate: (nextItem: Partial<IEntityDrawerItem>) => void;
 }
 
+/** @deprecated Use DrawerProvider instead */
 export const EntityDrawersProvider = ({
   children,
   drawerItem,
   onClose,
   onForceClose,
   onUpdate,
-}: IProviderProps) => {
+}: ILegacyProviderProps) => {
   return (
     <EntityDrawersContext.Provider
       value={{

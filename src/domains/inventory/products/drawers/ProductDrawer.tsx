@@ -1,21 +1,23 @@
 'use client';
 
 import { Typography, Flex, Descriptions, Tag, Image, Divider, Button } from 'antd';
-import { useEntityDrawer } from '../hooks/useEntityDrawer';
-import { useDrawersStore } from '../store/drawers';
-import { DrawerTypes } from '../types';
+import { useDrawerContext, useDrawer } from '@/layouts/drawers';
+import type { ProductDrawerPayload } from './types';
 
-const mockProductsMap: Record<string, {
-  id: string;
-  name: string;
-  sku: string;
-  price: number;
-  stock: number;
-  status: 'active' | 'draft' | 'archived';
-  category: string;
-  image: string;
-  description: string;
-}> = {
+const mockProductsMap: Record<
+  string,
+  {
+    id: string;
+    name: string;
+    sku: string;
+    price: number;
+    stock: number;
+    status: 'active' | 'draft' | 'archived';
+    category: string;
+    image: string;
+    description: string;
+  }
+> = {
   '1': {
     id: '1',
     name: 'iPhone 15 Pro Max',
@@ -79,22 +81,33 @@ const statusColors = {
   archived: 'default',
 } as const;
 
+/**
+ * Product drawer component
+ * Uses the new typed drawer context API
+ */
 export const ProductDrawer = () => {
-  const { entityId, close } = useEntityDrawer();
-  const addDrawer = useDrawersStore((state) => state.addDrawer);
+  // Typed context access - payload is ProductDrawerPayload
+  const { payload, close, setDirty } = useDrawerContext<ProductDrawerPayload>();
 
-  const product = mockProductsMap[String(entityId)];
+  // Type-safe drawer opener for category
+  const openCategory = useDrawer('category');
 
-  const openCategory = () => {
-    addDrawer({
-      type: DrawerTypes.CATEGORY,
-      entityId: product?.category,
-    });
+  const product = mockProductsMap[String(payload.entityId)];
+
+  const handleOpenCategory = () => {
+    if (product?.category) {
+      openCategory({ entityId: product.category });
+    }
   };
 
   if (!product) {
     return (
-      <Flex vertical align="center" justify="center" style={{ height: '100%', padding: 24 }}>
+      <Flex
+        vertical
+        align="center"
+        justify="center"
+        style={{ height: '100%', padding: 24 }}
+      >
         <Typography.Text type="secondary">Product not found</Typography.Text>
       </Flex>
     );
@@ -148,7 +161,7 @@ export const ProductDrawer = () => {
             </Typography.Text>
           </Descriptions.Item>
           <Descriptions.Item label="Category">
-            <Button type="link" style={{ padding: 0 }} onClick={openCategory}>
+            <Button type="link" style={{ padding: 0 }} onClick={handleOpenCategory}>
               {product.category}
             </Button>
           </Descriptions.Item>
