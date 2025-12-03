@@ -25,7 +25,3 @@ export function registerInventoryDrawers() {
 // Re-export individual registration functions for granular control
 export { registerProductDrawers } from './products/drawers';
 export { registerCategoryDrawers } from './categories/drawers';
-
-// Re-export typed hooks
-export { useProductDrawer, useProductCreateDrawer } from './products/drawers';
-export { useCategoryDrawer } from './categories/drawers';

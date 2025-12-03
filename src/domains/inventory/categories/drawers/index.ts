@@ -1,6 +1,5 @@
 import dynamic from 'next/dynamic';
-import { registerDrawer, createDrawerHook } from '@/layouts/drawers';
-import type { CategoryDrawerPayload } from './types';
+import { registerDrawer } from '@/layouts/drawers';
 
 // Re-export types
 export type { CategoryDrawerPayload } from './types';
@@ -18,9 +17,3 @@ export function registerCategoryDrawers() {
     confirmOnDirtyClose: true,
   });
 }
-
-/**
- * Typed hook for opening category drawer
- */
-export const useCategoryDrawer =
-  createDrawerHook<CategoryDrawerPayload>('category');

@@ -3,6 +3,8 @@
 import { Typography, Flex, Descriptions, Tag, Image, Divider, Button } from 'antd';
 import { useDrawerContext, useDrawer } from '@/layouts/drawers';
 import type { ProductDrawerPayload } from './types';
+// Import category types for type-safe useDrawer('category')
+import '../../categories/drawers/types';
 
 const mockProductsMap: Record<
   string,
