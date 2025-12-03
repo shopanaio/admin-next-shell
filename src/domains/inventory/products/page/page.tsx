@@ -4,8 +4,16 @@ import { useState, useMemo } from "react";
 import { Tag, Image, Typography, Flex } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { TableLayout } from "@/layouts/table/components/TableLayout";
-import { UiFilter } from "@/entity/UiFilter";
-import { useUiFilters } from "@/components/filters/UiFilterWidget";
+import {
+  useFilters,
+  FilterType,
+  FilterOperator,
+  numberOperators,
+  stringOperators,
+  enumOperators,
+  type IFilterSchema,
+  type IFilterValue,
+} from "@/layouts/filters";
 import { useDrawersStore, DrawerTypes } from "@/layouts/drawers";
 
 interface IProduct {
@@ -189,13 +197,13 @@ const columns: ColumnsType<IProduct> = [
   },
 ];
 
-const filterOptions: UiFilter.IUiFilter[] = [
+const filterSchema: IFilterSchema[] = [
   {
     key: "status",
     label: "Status",
     description: "Filter by product status",
-    type: UiFilter.UiFilterType.IsConstant,
-    operators: [UiFilter.UiFilterOperator.In],
+    type: FilterType.Enum,
+    operators: enumOperators,
     payloadKey: "status",
     options: [
       { label: "Active", value: "active" },
@@ -207,8 +215,8 @@ const filterOptions: UiFilter.IUiFilter[] = [
     key: "category",
     label: "Category",
     description: "Filter by category",
-    type: UiFilter.UiFilterType.IsConstant,
-    operators: [UiFilter.UiFilterOperator.In],
+    type: FilterType.Enum,
+    operators: enumOperators,
     payloadKey: "category",
     options: [
       { label: "Electronics", value: "Electronics" },
@@ -222,82 +230,94 @@ const filterOptions: UiFilter.IUiFilter[] = [
     key: "price",
     label: "Price",
     description: "Filter by price",
-    type: UiFilter.UiFilterType.Number,
-    operators: UiFilter.uiNumberFilterOperators,
+    type: FilterType.Number,
+    operators: numberOperators,
     payloadKey: "price",
   },
   {
     key: "stock",
     label: "Stock",
     description: "Filter by stock quantity",
-    type: UiFilter.UiFilterType.Number,
-    operators: UiFilter.uiNumberFilterOperators,
+    type: FilterType.Number,
+    operators: numberOperators,
     payloadKey: "stock",
   },
   {
     key: "name",
     label: "Name",
     description: "Filter by product name",
-    type: UiFilter.UiFilterType.String,
-    operators: UiFilter.uiStringFilterOperators,
+    type: FilterType.String,
+    operators: stringOperators,
     payloadKey: "name",
   },
 ];
 
+/**
+ * Apply filters to data (client-side filtering)
+ * This is a simple implementation - in real app, you'd use an adapter for API
+ */
+function applyFiltersToData(
+  data: IProduct[],
+  filters: IFilterValue[],
+  searchValue: string
+): IProduct[] {
+  let result = data;
+
+  // Apply search
+  if (searchValue) {
+    const search = searchValue.toLowerCase();
+    result = result.filter(
+      (p) =>
+        p.name.toLowerCase().includes(search) ||
+        p.sku.toLowerCase().includes(search)
+    );
+  }
+
+  // Apply filters
+  filters.forEach((filter) => {
+    const key = filter.payloadKey as keyof IProduct;
+    const { operator, value } = filter;
+
+    if (!value || (Array.isArray(value) && value.length === 0)) return;
+
+    result = result.filter((product) => {
+      const productValue = product[key];
+
+      switch (operator) {
+        case FilterOperator.In:
+          return (value as unknown[]).includes(productValue);
+        case FilterOperator.Eq:
+          return productValue === (value as unknown[])[0];
+        case FilterOperator.Gt:
+          return (productValue as number) > (value as number[])[0];
+        case FilterOperator.Gte:
+          return (productValue as number) >= (value as number[])[0];
+        case FilterOperator.Lt:
+          return (productValue as number) < (value as number[])[0];
+        case FilterOperator.Lte:
+          return (productValue as number) <= (value as number[])[0];
+        case FilterOperator.ILike:
+          return String(productValue)
+            .toLowerCase()
+            .includes(String((value as unknown[])[0]).toLowerCase());
+        default:
+          return true;
+      }
+    });
+  });
+
+  return result;
+}
+
 export default function ProductsPage() {
   const [selectedRows, setSelectedRows] = useState<IProduct[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const filtersProps = useUiFilters({ filters: filterOptions });
+  const { filters, widgetProps } = useFilters({ schema: filterSchema });
   const addDrawer = useDrawersStore((state) => state.addDrawer);
 
   const filteredProducts = useMemo(() => {
-    let result = mockProducts;
-
-    // Apply search
-    if (searchValue) {
-      const search = searchValue.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(search) ||
-          p.sku.toLowerCase().includes(search)
-      );
-    }
-
-    // Apply filters
-    filtersProps.value.forEach((filter) => {
-      const key = filter.payloadKey as keyof IProduct;
-      const { operator, value } = filter;
-
-      if (!value || (Array.isArray(value) && value.length === 0)) return;
-
-      result = result.filter((product) => {
-        const productValue = product[key];
-
-        switch (operator) {
-          case UiFilter.UiFilterOperator.In:
-            return value.includes(productValue);
-          case UiFilter.UiFilterOperator.Eq:
-            return productValue === value[0];
-          case UiFilter.UiFilterOperator.Gt:
-            return (productValue as number) > value[0];
-          case UiFilter.UiFilterOperator.Gte:
-            return (productValue as number) >= value[0];
-          case UiFilter.UiFilterOperator.Lt:
-            return (productValue as number) < value[0];
-          case UiFilter.UiFilterOperator.Lte:
-            return (productValue as number) <= value[0];
-          case UiFilter.UiFilterOperator.ILike:
-            return String(productValue)
-              .toLowerCase()
-              .includes(String(value[0]).toLowerCase());
-          default:
-            return true;
-        }
-      });
-    });
-
-    return result;
-  }, [searchValue, filtersProps.value]);
+    return applyFiltersToData(mockProducts, filters, searchValue);
+  }, [searchValue, filters]);
 
   const handleCreate = () => {
     console.log("Create new product");
@@ -328,7 +348,7 @@ export default function ProductsPage() {
         createLabel: "Add Product",
       }}
       navigationProps={{
-        filtersProps,
+        filtersProps: widgetProps,
         searchProps: {
           searchValue,
           onChangeSearchValue: setSearchValue,

@@ -1,7 +1,11 @@
 import { Flex } from 'antd';
 import { ReactNode } from 'react';
 import { Actions, IActionsProps } from './Actions';
-import { IFiltersProps, ISearchProps, UiFilterWidget } from '@/components/filters/UiFilterWidget';
+import {
+  FilterWidget,
+  IFilterWidgetProps,
+  IFilterWidgetSearchProps,
+} from '@/layouts/filters';
 import { IColumnsProps } from './Columns';
 import { ISortByProps } from './SortBy';
 
@@ -10,6 +14,16 @@ export interface ISelectedRowsProps<T = unknown> {
   onChangeSelectedRows: (rows: T[], record?: T, selected?: boolean) => void;
   clearSelectedRows: () => void;
 }
+
+/** Filter props for table navigation */
+export interface IFiltersProps {
+  options: IFilterWidgetProps['options'];
+  value: IFilterWidgetProps['value'];
+  onChange: IFilterWidgetProps['onChange'];
+}
+
+/** Search props for table navigation */
+export interface ISearchProps extends IFilterWidgetSearchProps {}
 
 export interface ITableNavigationProps<T = unknown> {
   sortProps?: ISortByProps;
@@ -38,7 +52,12 @@ export const TableNavigation = <T extends { id?: string | number }>({
           clearSelectedRows={clearSelectedRows}
         />
       )}
-      <UiFilterWidget filtersProps={filtersProps} searchProps={searchProps} />
+      <FilterWidget
+        options={filtersProps.options}
+        value={filtersProps.value}
+        onChange={filtersProps.onChange}
+        searchProps={searchProps}
+      />
     </Flex>
   );
 };
