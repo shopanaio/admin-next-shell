@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Tag, Image, Typography, Flex, Button } from "antd";
+import { useState, useMemo, useCallback, useRef } from "react";
+import { Image, Typography, Flex, Button } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-import { ColumnsType } from "antd/es/table";
-import { DataLayout } from "@/layouts/data";
-import { DataTable } from "@/layouts/table/components/Table";
-import { TablePagination } from "@/layouts/table/components/Pagination";
-import { Actions } from "@/layouts/table/components/Navigation/Actions";
+import { AgGridReact } from "ag-grid-react";
 import {
-  TableTopBorder,
-  TableBottomBorder,
-} from "@/layouts/table/components/TableBorders";
+  ColDef,
+  ModuleRegistry,
+  AllCommunityModule,
+  RowSelectionOptions,
+  SelectionChangedEvent,
+} from "ag-grid-community";
+import type { CustomCellRendererProps } from "ag-grid-react";
+import { DataLayout } from "@/layouts/data";
+import { Actions } from "@/layouts/table/components/Navigation/Actions";
 import {
   useFilters,
   FilterType,
@@ -23,10 +25,8 @@ import {
   type IFilterSchema,
   type IFilterValue,
 } from "@/layouts/filters";
-import { useDrawer } from "@/layouts/drawers";
 
-// Import types for type-safe drawer payload
-import "../drawers/types";
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface IProduct {
   id: string;
@@ -106,72 +106,24 @@ const mockProducts: IProduct[] = Array.from({ length: 50 }, (_, i) => ({
   image: `https://picsum.photos/seed/${i + 1}/40/40`,
 }));
 
-const statusColors: Record<IProduct["status"], string> = {
-  active: "green",
-  draft: "orange",
-  archived: "default",
+// Cell Renderers
+const ProductCellRenderer = (props: CustomCellRendererProps<IProduct>) => {
+  const { data } = props;
+  if (!data) return null;
+  return (
+    <Flex align="center" gap="small">
+      <Image
+        src={data.image}
+        alt={data.name}
+        width={40}
+        height={40}
+        style={{ borderRadius: 4 }}
+        preview={false}
+      />
+      <Typography.Text strong>{data.name}</Typography.Text>
+    </Flex>
+  );
 };
-
-const columns: ColumnsType<IProduct> = [
-  {
-    title: "Product",
-    dataIndex: "name",
-    key: "name",
-    render: (name: string, record) => (
-      <Flex align="center" gap="small">
-        <Image
-          src={record.image}
-          alt={name}
-          width={40}
-          height={40}
-          style={{ borderRadius: 4 }}
-          preview={false}
-        />
-        <Flex vertical>
-          <Typography.Text strong>{name}</Typography.Text>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {record.sku}
-          </Typography.Text>
-        </Flex>
-      </Flex>
-    ),
-  },
-  {
-    title: "Category",
-    dataIndex: "category",
-    key: "category",
-    width: 140,
-  },
-  {
-    title: "Price",
-    dataIndex: "price",
-    key: "price",
-    width: 120,
-    render: (price: number) => `$${price.toLocaleString()}`,
-    sorter: (a, b) => a.price - b.price,
-  },
-  {
-    title: "Stock",
-    dataIndex: "stock",
-    key: "stock",
-    width: 100,
-    render: (stock: number) => (
-      <Typography.Text type={stock === 0 ? "danger" : undefined}>
-        {stock}
-      </Typography.Text>
-    ),
-    sorter: (a, b) => a.stock - b.stock,
-  },
-  {
-    title: "Status",
-    dataIndex: "status",
-    key: "status",
-    width: 100,
-    render: (status: IProduct["status"]) => (
-      <Tag color={statusColors[status]}>{status.toUpperCase()}</Tag>
-    ),
-  },
-];
 
 const filterSchema: IFilterSchema[] = [
   {
@@ -286,27 +238,51 @@ function applyFiltersToData(
 }
 
 export default function ProductsPage() {
+  const gridRef = useRef<AgGridReact<IProduct>>(null);
   const [selectedRows, setSelectedRows] = useState<IProduct[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const { filters, widgetProps } = useFilters({ schema: filterSchema });
-
-  // New typed drawer hook
-  const openProductDrawer = useDrawer("product");
 
   const filteredProducts = useMemo(() => {
     return applyFiltersToData(mockProducts, filters, searchValue);
   }, [searchValue, filters]);
 
+  const columnDefs = useMemo<ColDef<IProduct>[]>(
+    () => [
+      {
+        headerName: "Product",
+        field: "name",
+        cellRenderer: ProductCellRenderer,
+        flex: 1,
+      },
+    ],
+    []
+  );
+
+  const defaultColDef = useMemo<ColDef>(
+    () => ({
+      resizable: true,
+    }),
+    []
+  );
+
+  const rowSelection = useMemo<RowSelectionOptions>(
+    () => ({
+      mode: "multiRow",
+      checkboxes: true,
+      headerCheckbox: true,
+    }),
+    []
+  );
+
   const handleCreate = () => {
     console.log("Create new product");
   };
 
-  const handleRowClick = (record: IProduct) => {
-    // Type-safe: payload is typed as ProductDrawerPayload
-    openProductDrawer({ entityId: record.id });
-  };
+  const onSelectionChanged = useCallback((event: SelectionChangedEvent<IProduct>) => {
+    const selected = event.api.getSelectedRows();
+    setSelectedRows(selected);
+  }, []);
 
   const handleDelete = (rows: IProduct[]) => {
     console.log("Delete products:", rows);
@@ -316,7 +292,10 @@ export default function ProductsPage() {
     console.log("Archive products:", rows);
   };
 
-  const clearSelectedRows = () => setSelectedRows([]);
+  const clearSelectedRows = () => {
+    gridRef.current?.api.deselectAll();
+    setSelectedRows([]);
+  };
 
   return (
     <DataLayout
@@ -351,34 +330,17 @@ export default function ProductsPage() {
         }
       />
 
-      <TableTopBorder />
-      <div
-        style={{
-          backgroundColor: "var(--color-gray-1)",
-          borderLeft: "1px solid var(--color-border)",
-          borderRight: "1px solid var(--color-border)",
-        }}
-      >
-        <DataTable
-          name="products"
-          data={filteredProducts}
-          columns={columns}
-          onRow={handleRowClick}
-          selectedRows={selectedRows}
-          onChangeSelectedRows={setSelectedRows}
+      <div style={{ height: "100%" }}>
+        <AgGridReact<IProduct>
+          ref={gridRef}
+          rowData={filteredProducts}
+          columnDefs={columnDefs}
+          defaultColDef={defaultColDef}
+          rowSelection={rowSelection}
+          onSelectionChanged={onSelectionChanged}
+          getRowId={(params) => params.data.id}
         />
       </div>
-      <TableBottomBorder />
-
-      <DataLayout.Footer>
-        <TablePagination
-          page={page}
-          pageSize={pageSize}
-          total={filteredProducts.length}
-          onChangePage={setPage}
-          onChangePageSize={setPageSize}
-        />
-      </DataLayout.Footer>
     </DataLayout>
   );
 }
